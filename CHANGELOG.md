@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v1.1.0] - 2026-09-03
+
 ### Added
 
 - The release workflow now extracts the tag's own `## [vX.Y.Z]` section
