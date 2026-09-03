@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
+	"github.com/samuelsulo/kitsu/internal/config"
 	"github.com/samuelsulo/kitsu/internal/terraform"
 	"github.com/spf13/cobra"
 )
@@ -104,6 +106,8 @@ conventions shared across projects: one Terraform root at
 				return runnerFor(cmd).Docs(docsBin)
 			},
 		},
+		newTerraformScaffoldCmd(runnerFor),
+		newTerraformCatalogCmd(runnerFor),
 	)
 
 	return cmd
@@ -323,4 +327,119 @@ func readLine(r io.Reader) (string, error) {
 			return line.String(), err
 		}
 	}
+}
+
+// accountIDPattern matches a bare 12-digit AWS account id.
+var accountIDPattern = regexp.MustCompile(`^[0-9]{12}$`)
+
+// newTerraformScaffoldCmd builds the "scaffold" subcommand group.
+func newTerraformScaffoldCmd(runnerFor runnerFactory) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "scaffold",
+		Short: "Scaffold a new environment or module",
+	}
+
+	cmd.AddCommand(newTerraformScaffoldEnvironmentCmd(runnerFor), newTerraformScaffoldModuleCmd(runnerFor))
+
+	return cmd
+}
+
+func newTerraformScaffoldEnvironmentCmd(runnerFor runnerFactory) *cobra.Command {
+	var accountID, roleARNTemplate string
+
+	cmd := &cobra.Command{
+		Use:   "environment",
+		Short: "Scaffold a new environment from an AWS account id and live/project.auto.tfvars",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r := runnerFor(cmd)
+
+			if r.Env.Name != "sandbox" && r.Env.Name != "production" {
+				return fmt.Errorf("--env must be either \"sandbox\" or \"production\", got %q", r.Env.Name)
+			}
+			if !accountIDPattern.MatchString(accountID) {
+				return fmt.Errorf("--account-id must be a 12-digit AWS account id, got %q", accountID)
+			}
+
+			template, err := config.ResolveRoleARNTemplate(roleARNTemplate)
+			if err != nil {
+				return err
+			}
+
+			return r.ScaffoldEnvironment(accountID, template)
+		},
+	}
+
+	cmd.Flags().StringVar(&accountID, "account-id", "", "12-digit AWS account id (required)")
+	cmd.MarkFlagRequired("account-id")
+	cmd.Flags().StringVar(&roleARNTemplate, "role-arn-template", "",
+		"IAM role ARN template with %s for the account id (defaults to terraform.role_arn_template in the kitsu config file)")
+
+	return cmd
+}
+
+func newTerraformScaffoldModuleCmd(runnerFor runnerFactory) *cobra.Command {
+	return &cobra.Command{
+		Use:   "module <name>",
+		Short: "Scaffold a new project-specific Terraform module under modules/local/",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runnerFor(cmd).ScaffoldModule(args[0])
+		},
+	}
+}
+
+// newTerraformCatalogCmd builds the "catalog" subcommand group: every
+// operation against the shared Terraform module catalog repository.
+func newTerraformCatalogCmd(runnerFor runnerFactory) *cobra.Command {
+	var catalogRepo string
+
+	cmd := &cobra.Command{
+		Use:   "catalog",
+		Short: "List and vendor modules from the Terraform module catalog",
+	}
+
+	cmd.PersistentFlags().StringVar(&catalogRepo, "catalog-repo", "",
+		"Git URL of the module catalog (defaults to terraform.catalog_repo in the kitsu config file)")
+
+	cmd.AddCommand(
+		&cobra.Command{
+			Use:   "list",
+			Short: "List modules available in the catalog",
+			Args:  cobra.NoArgs,
+			RunE: func(cmd *cobra.Command, args []string) error {
+				repo, err := config.ResolveCatalogRepo(catalogRepo)
+				if err != nil {
+					return err
+				}
+				return runnerFor(cmd).CatalogList(repo)
+			},
+		},
+		&cobra.Command{
+			Use:   "versions <module>",
+			Short: "List available versions of a catalog module, newest first",
+			Args:  cobra.ExactArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				repo, err := config.ResolveCatalogRepo(catalogRepo)
+				if err != nil {
+					return err
+				}
+				return runnerFor(cmd).CatalogVersions(repo, args[0])
+			},
+		},
+		&cobra.Command{
+			Use:   "vendor <module> <version>",
+			Short: "Copy a module from the catalog into modules/vendor/, pinned to a tag",
+			Args:  cobra.ExactArgs(2),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				repo, err := config.ResolveCatalogRepo(catalogRepo)
+				if err != nil {
+					return err
+				}
+				return runnerFor(cmd).CatalogVendor(repo, args[0], args[1])
+			},
+		},
+	)
+
+	return cmd
 }
