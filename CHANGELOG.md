@@ -16,3 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `-ldflags`.
 - `CLAUDE.md` documenting project rules (language, documentation, README
   maintenance, changelog/versioning, commit conventions).
+
+### Changed
+
+- `.githooks/commit-msg`: commit scope is now validated against kitsu's
+  own commands (`internal/cli/<scope>.go`) instead of the inherited
+  `skills/<scope>` convention from a different project template.
