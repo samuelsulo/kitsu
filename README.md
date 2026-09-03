@@ -102,6 +102,11 @@ Subcommands:
 | `output-json`                       | Show the outputs of the environment's current state, in JSON format. |
 | `clean`                             | Remove the local Terraform cache and this environment's saved plan. |
 | `docs`                              | Regenerate each module's README input/output tables with terraform-docs, for every module directory under `<infra-dir>/modules/*/*`. Requires `terraform-docs` on `PATH` (or `--terraform-docs-bin`). |
+| `scaffold environment --account-id=<id>` | Scaffold `<infra-dir>/environments/<env>/{environment.tfvars,backend.hcl}` for a new AWS account, reading `project`/`aws_region` from `live/project.auto.tfvars`. `--env` must be `sandbox` or `production`. |
+| `scaffold module <name>`            | Scaffold `<infra-dir>/modules/local/<name>/` with the standard empty module files (`main.tf`, `variables.tf`, `outputs.tf`, `versions.tf`, `README.md`), skipping any that already exist. |
+| `catalog list`                      | List modules available in the module catalog. |
+| `catalog versions <module>`         | List a catalog module's available versions, newest first. |
+| `catalog vendor <module> <version>` | Copy a module from the catalog into `<infra-dir>/modules/vendor/<module>`, pinned to that version's tag, with provenance recorded in `VENDORED.md`. |
 
 Example:
 
@@ -109,3 +114,25 @@ Example:
 kitsu terraform plan --env production
 kitsu terraform apply --env production
 ```
+
+## Configuration
+
+Personal defaults that vary by user but not by project — not project
+conventions, which stay as flags — live in a per-user config file:
+`$XDG_CONFIG_HOME/kitsu/config.yaml` (or the OS-appropriate equivalent
+of `~/.config/kitsu/config.yaml`).
+
+```yaml
+terraform:
+  # Git URL of the Terraform module catalog used by 'catalog' (or pass
+  # --catalog-repo explicitly on each command).
+  catalog_repo: "git@github.com:<you>/terraform-aws-catalog.git"
+  # IAM role ARN template used by 'scaffold environment', with %s
+  # standing in for the AWS account id (or pass --role-arn-template).
+  role_arn_template: "arn:aws:iam::%s:role/<YourAdminRole>"
+```
+
+Every value here can be overridden per invocation with the matching
+flag; the config file only supplies the default when the flag is
+omitted. Commands that need a value neither the flag nor the config
+file provides fail with a message naming both ways to set it.

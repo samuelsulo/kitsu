@@ -39,6 +39,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `docs` runs `terraform-docs` (`--terraform-docs-bin`, default
   `terraform-docs`) against every module directory under
   `<infra-dir>/modules/*/*`.
+- `terraform scaffold environment`/`scaffold module` and
+  `terraform catalog list`/`versions`/`vendor`, completing the port of
+  the "SCAFFOLDING" section of the same Makefile. `catalog` nests
+  `list`/`versions`/`vendor` under one group (rather than flat
+  `catalog-modules`/`catalog-versions`/`vendor-module`, since all three
+  operate on the same catalog repository), and `vendor` takes module and
+  version as two separate arguments instead of one concatenated
+  `<module>/vX.Y.Z` ref.
+- Per-user config file (`$XDG_CONFIG_HOME/kitsu/config.yaml`,
+  `internal/config`) for personal defaults that don't belong as project
+  conventions: `terraform.catalog_repo` and
+  `terraform.role_arn_template`, each overridable per invocation with
+  `--catalog-repo`/`--role-arn-template`.
 
 ### Changed
 
