@@ -79,6 +79,7 @@ Subcommands:
 | `validate`                          | Initialize (see `init`) and validate the configuration. |
 | `fmt`                               | Format Terraform (`.tf`/`.tfvars`) and generic HCL files (e.g. `backend.hcl`). |
 | `fmt-check`                         | Check formatting without modifying files (useful in CI). |
+| `fmt-staged <file>...`              | Format exactly the given files, not the whole tree — for a pre-commit hook that formats only staged files. |
 | `plan`                              | Validate (see `validate`) and generate and save an execution plan. |
 | `show-plan`                         | Show the plan previously saved by `plan`. |
 | `apply`                             | Apply the plan previously saved by `plan`. |

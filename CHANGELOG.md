@@ -70,6 +70,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   an older one without `--force`; every other environment deploys the
   currently checked-out commit, versioned by its short SHA. The
   `contact_api` Terraform module stays optional, matching the original.
+- `terraform fmt-staged <file>...` command: formats exactly the given
+  files rather than the whole tree, for a pre-commit hook that formats
+  only staged files. Ported from the Makefile's `fmt-staged` target
+  (kept as its own command rather than a flag on `fmt`, matching the
+  Makefile's own split); `.tftest.hcl` files are left untouched here,
+  unlike `fmt`, since there's no recursive `terraform fmt` pass to
+  cover them as a side effect on a targeted file list.
 
 ### Changed
 
