@@ -17,7 +17,7 @@ import (
 // <infra-dir>/environments/<env>/ — so day-to-day commands don't need to
 // repeat -var-file/-backend-config by hand.
 func newTerraformCmd() *cobra.Command {
-	var envName, infraDir, bin string
+	var envName, infraDir, bin, docsBin string
 
 	cmd := &cobra.Command{
 		Use:   "terraform",
@@ -31,6 +31,7 @@ conventions shared across projects: one Terraform root at
 	cmd.PersistentFlags().StringVar(&envName, "env", "sandbox", "Environment name (a directory under <infra-dir>/environments/)")
 	cmd.PersistentFlags().StringVar(&infraDir, "infra-dir", "infrastructure", "Infrastructure root directory")
 	cmd.PersistentFlags().StringVar(&bin, "terraform-bin", "terraform", "Terraform binary to invoke")
+	cmd.PersistentFlags().StringVar(&docsBin, "terraform-docs-bin", "terraform-docs", "terraform-docs binary to invoke (used by 'docs')")
 
 	// runnerFor builds the Runner for one command invocation, streaming
 	// I/O through cmd itself so tests can redirect it via
@@ -89,6 +90,20 @@ conventions shared across projects: one Terraform root at
 			func(r terraform.Runner) error { return r.TerraformVersion() }),
 		newTerraformSimpleCmd(runnerFor, "upgrade", "Re-initialize and upgrade provider/module versions to the latest allowed",
 			func(r terraform.Runner) error { return r.Upgrade() }),
+		newTerraformSimpleCmd(runnerFor, "output", "Show the outputs of the environment's current state",
+			func(r terraform.Runner) error { return r.Output() }),
+		newTerraformSimpleCmd(runnerFor, "output-json", "Show the outputs of the environment's current state, in JSON format",
+			func(r terraform.Runner) error { return r.OutputJSON() }),
+		newTerraformSimpleCmd(runnerFor, "clean", "Remove the local Terraform cache and this environment's saved plan",
+			func(r terraform.Runner) error { return r.Clean() }),
+		&cobra.Command{
+			Use:   "docs",
+			Short: "Regenerate each module's README input/output tables with terraform-docs",
+			Args:  cobra.NoArgs,
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return runnerFor(cmd).Docs(docsBin)
+			},
+		},
 	)
 
 	return cmd
