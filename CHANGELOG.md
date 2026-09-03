@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v1.0.0] - 2026-09-03
+
 ### Added
 
 - Project scaffold: Go module `github.com/samuelsulo/kitsu`, Cobra-based
