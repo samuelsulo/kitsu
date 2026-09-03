@@ -2,3 +2,7 @@
 *.test
 *.out
 .DS_Store
+
+# Scratch area for reference material (e.g. existing scripts being
+# ported into kitsu commands) — never committed.
+/tmp/
