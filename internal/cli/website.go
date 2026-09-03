@@ -12,7 +12,7 @@ func newWebsiteCmd() *cobra.Command {
 		Short: "Build and deploy the project's website",
 	}
 
-	cmd.AddCommand(newWebsiteDeployCmd())
+	cmd.AddCommand(newWebsiteDeployCmd(), newWebsiteCurrentCmd(), newWebsiteHistoryCmd())
 
 	return cmd
 }
@@ -58,4 +58,59 @@ versioned by its short SHA, and accepts neither --tag nor --force.`,
 	cmd.Flags().StringVar(&terraformBin, "terraform-bin", "terraform", "Terraform binary to invoke")
 
 	return cmd
+}
+
+// newInspectCmd builds a "website" subcommand that only needs
+// InspectOptions (--env, --infra-dir, --terraform-bin), for commands
+// that read deploy version tracking rather than deploying anything.
+func newInspectCmd(use, short, long string, run func(website.InspectOptions) error) *cobra.Command {
+	var env, infraDir, terraformBin string
+
+	cmd := &cobra.Command{
+		Use:   use,
+		Short: short,
+		Long:  long,
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return run(website.InspectOptions{
+				Env:          env,
+				InfraDir:     infraDir,
+				TerraformBin: terraformBin,
+				Stdout:       cmd.OutOrStdout(),
+				Stderr:       cmd.ErrOrStderr(),
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&env, "env", "", `Environment to inspect, e.g. "production" (required)`)
+	cmd.MarkFlagRequired("env")
+	cmd.Flags().StringVar(&infraDir, "infra-dir", "infrastructure", "Infrastructure root directory, relative to the repo root")
+	cmd.Flags().StringVar(&terraformBin, "terraform-bin", "terraform", "Terraform binary to invoke")
+
+	return cmd
+}
+
+func newWebsiteCurrentCmd() *cobra.Command {
+	return newInspectCmd("current", "Print the version currently live in an environment",
+		`current prints the tag currently live in --env — and nothing else,
+so it's easy to use in a script, e.g.:
+
+  if [ "$(kitsu website current --env production)" = "$TAG" ]; then ...
+
+Only environments deploy records version markers for (currently just
+"production" — see 'kitsu website deploy') have a current version.`,
+		website.Current)
+}
+
+func newWebsiteHistoryCmd() *cobra.Command {
+	return newInspectCmd("history", "List every version ever deployed to an environment",
+		`history lists every version ever deployed to --env, most recently
+deployed first, marking whichever one is currently live. Ordered by
+deploy time rather than version number, so a rollback (an older
+version deployed more recently) is visible as such rather than
+looking like a gap.
+
+Only environments deploy records version markers for (currently just
+"production" — see 'kitsu website deploy') have any history.`,
+		website.History)
 }

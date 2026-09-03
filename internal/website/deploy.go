@@ -17,8 +17,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/samuelsulo/kitsu/internal/git"
 )
 
 // DeployOptions configures Deploy.
@@ -75,20 +73,12 @@ func Deploy(opts DeployOptions) error {
 		return err
 	}
 
-	repoRoot, err := git.Root("")
-	if err != nil {
-		return err
-	}
-	infraDir := defaultString(opts.InfraDir, "infrastructure")
 	websiteDirName := defaultString(opts.WebsiteDir, "website")
 	terraformBin := defaultString(opts.TerraformBin, "terraform")
 
-	liveDir := filepath.Join(repoRoot, infraDir, "live")
-	envDir := filepath.Join(repoRoot, infraDir, "environments", opts.Env)
-	backendHCL := filepath.Join(envDir, "backend.hcl")
-
-	if _, err := os.Stat(backendHCL); err != nil {
-		return fmt.Errorf("%s not found: environment %q does not exist yet", backendHCL, opts.Env)
+	repoRoot, liveDir, bucket, err := resolveBucket(opts.Env, opts.InfraDir, terraformBin, opts.Stdout)
+	if err != nil {
+		return err
 	}
 
 	if opts.Env != "production" {
@@ -99,24 +89,13 @@ func Deploy(opts DeployOptions) error {
 		version = strings.TrimSpace(sha)
 	}
 
-	fmt.Fprintf(opts.Stdout, "==> [%s] Reading infrastructure endpoints from Terraform state\n", opts.Env)
-	initCmd := exec.Command(terraformBin, "init", "-backend-config="+backendHCL, "-reconfigure")
-	initCmd.Dir = liveDir
-	if out, err := initCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("terraform init: %w (%s)", err, strings.TrimSpace(string(out)))
-	}
-
-	bucket, err := terraformStateAttr(terraformBin, liveDir, "module.website_hosting.aws_s3_bucket.this", "id")
-	if err != nil {
-		return err
-	}
 	distributionID, err := terraformStateAttr(terraformBin, liveDir, "module.website_hosting.aws_cloudfront_distribution.this", "id")
 	if err != nil {
 		return err
 	}
-	if bucket == "" || distributionID == "" {
+	if distributionID == "" {
 		return fmt.Errorf(
-			"could not read the S3 bucket / CloudFront distribution from the %q Terraform state (has 'kitsu terraform apply --env %s' been run for the website_hosting module?)",
+			"could not read the CloudFront distribution from the %q Terraform state (has 'kitsu terraform apply --env %s' been run for the website_hosting module?)",
 			opts.Env, opts.Env,
 		)
 	}
