@@ -89,3 +89,64 @@ func TestRunner_FmtCheck_DetectsUnformattedFile(t *testing.T) {
 		t.Error("FmtCheck: expected an error for an unformatted file, got nil")
 	}
 }
+
+func TestRunner_FmtStaged(t *testing.T) {
+	requireTerraform(t)
+
+	dir := t.TempDir()
+	tfFile := filepath.Join(dir, "main.tf")
+	hclFile := filepath.Join(dir, "backend.hcl")
+	testHCLFile := filepath.Join(dir, "fixtures.tftest.hcl")
+	untouchedTF := filepath.Join(dir, "untouched.tf")
+
+	for path, content := range map[string]string{
+		tfFile:      unformattedTF,
+		hclFile:     unformattedHCL,
+		testHCLFile: unformattedHCL,
+		untouchedTF: unformattedTF,
+	} {
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("write %q: %v", path, err)
+		}
+	}
+
+	r := Runner{Stderr: os.Stderr}
+	if err := r.FmtStaged([]string{tfFile, hclFile, testHCLFile}); err != nil {
+		t.Fatalf("FmtStaged: %v", err)
+	}
+
+	formattedTF, err := os.ReadFile(tfFile)
+	if err != nil {
+		t.Fatalf("read %q: %v", tfFile, err)
+	}
+	if string(formattedTF) == unformattedTF {
+		t.Error("main.tf was not formatted")
+	}
+
+	formattedHCL, err := os.ReadFile(hclFile)
+	if err != nil {
+		t.Fatalf("read %q: %v", hclFile, err)
+	}
+	if string(formattedHCL) == unformattedHCL {
+		t.Error("backend.hcl was not formatted")
+	}
+
+	// .tftest.hcl is explicitly excluded here, unlike Fmt: there's no
+	// recursive terraform fmt pass to have already covered it.
+	untouchedTestHCL, err := os.ReadFile(testHCLFile)
+	if err != nil {
+		t.Fatalf("read %q: %v", testHCLFile, err)
+	}
+	if string(untouchedTestHCL) != unformattedHCL {
+		t.Error("fixtures.tftest.hcl was modified, want it left untouched by FmtStaged")
+	}
+
+	// Not passed to FmtStaged at all: must be left exactly as written.
+	untouched, err := os.ReadFile(untouchedTF)
+	if err != nil {
+		t.Fatalf("read %q: %v", untouchedTF, err)
+	}
+	if string(untouched) != unformattedTF {
+		t.Error("untouched.tf was modified despite not being passed to FmtStaged")
+	}
+}

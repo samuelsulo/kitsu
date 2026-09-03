@@ -61,6 +61,26 @@ conventions shared across projects: one Terraform root at
 			func(r terraform.Runner) error { return r.Fmt() }),
 		newTerraformSimpleCmd(runnerFor, "fmt-check", "Check formatting without modifying files (useful in CI)",
 			func(r terraform.Runner) error { return r.FmtCheck() }),
+		&cobra.Command{
+			Use:   "fmt-staged <file>...",
+			Short: "Format exactly the given files, not the whole tree (for a pre-commit hook)",
+			Long: `fmt-staged formats exactly the given files, applying the same rules
+as fmt: .tf/.tfvars files in place, generic .hcl files (e.g.
+backend.hcl) through the same stdin trick fmt uses, and .tftest.hcl
+files left untouched (unlike fmt, whose recursive pass covers them as
+a side effect — a targeted file list has no such pass to piggyback
+on).
+
+Intended for a pre-commit hook that formats only staged files, never
+the whole tree — pass it the staged files under the infrastructure
+directory, e.g.:
+
+  kitsu terraform fmt-staged $(git diff --cached --name-only --diff-filter=ACMR)`,
+			Args: cobra.MinimumNArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return runnerFor(cmd).FmtStaged(args)
+			},
+		},
 		newTerraformSimpleCmd(runnerFor, "plan", "Validate (see validate) and generate and save an execution plan",
 			func(r terraform.Runner) error { return r.Plan() }),
 		newTerraformSimpleCmd(runnerFor, "show-plan", "Show the plan previously saved by plan",

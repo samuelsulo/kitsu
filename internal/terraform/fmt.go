@@ -34,6 +34,33 @@ func (r Runner) FmtCheck() error {
 	})
 }
 
+// FmtStaged formats exactly the given files (typically the ones staged
+// for a commit — see the pre-commit hook's own comments), rather than
+// the whole tree: .tf/.tfvars files are formatted in place via
+// `terraform fmt <file>`, generic .hcl files (e.g. backend.hcl) go
+// through the same stdin trick as fmtHCLFile, and .tftest.hcl files are
+// left untouched — unlike Fmt/FmtCheck, which rely on Terraform's own
+// recursive walk to cover .tftest.hcl as a side effect of formatting
+// everything, this only ever touches the files it's given, so there's
+// no recursive pass to piggyback on. Anything else is ignored.
+func (r Runner) FmtStaged(files []string) error {
+	for _, f := range files {
+		switch {
+		case strings.HasSuffix(f, ".tftest.hcl"):
+			continue
+		case strings.HasSuffix(f, ".tf"), strings.HasSuffix(f, ".tfvars"):
+			if err := r.exec("", "fmt", f); err != nil {
+				return fmt.Errorf("terraform fmt %s: %w", f, err)
+			}
+		case strings.HasSuffix(f, ".hcl"):
+			if err := r.fmtHCLFile(f, false); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // walkHCLFiles calls fn for every generic .hcl file under the
 // infrastructure directory, in the same order as filepath.WalkDir,
 // skipping .tftest.hcl files and .terraform/ cache directories.
