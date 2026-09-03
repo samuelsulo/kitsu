@@ -77,6 +77,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   Makefile's own split); `.tftest.hcl` files are left untouched here,
   unlike `fmt`, since there's no recursive `terraform fmt` pass to
   cover them as a side effect on a targeted file list.
+- Release automation: `.goreleaser.yaml` cross-compiles `kitsu` for
+  linux/darwin × amd64/arm64 and `.github/workflows/release.yaml`
+  publishes the result as a GitHub Release on every `vX.Y.Z` tag push,
+  installable via `mise`'s `github:` backend (see README's Install and
+  Releasing sections).
 
 ### Changed
 

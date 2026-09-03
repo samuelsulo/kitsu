@@ -15,6 +15,27 @@ make build      # builds ./bin/kitsu
 
 ## Install
 
+### Via mise (in other projects)
+
+Released versions (tagged `vX.Y.Z`, published as
+[GitHub Releases](https://github.com/samuelsulo/kitsu/releases) by
+[`.github/workflows/release.yaml`](.github/workflows/release.yaml)) are
+installable with [mise](https://mise.jdx.dev/), via its `github:`
+backend — no plugin needed:
+
+```sh
+mise use -g github:samuelsulo/kitsu@1.0.0
+```
+
+Or pinned in a project's `mise.toml`:
+
+```toml
+[tools]
+"github:samuelsulo/kitsu" = "1.0.0"
+```
+
+### From source
+
 ```sh
 make install    # builds and installs kitsu into $GOBIN (or $GOPATH/bin)
 ```
@@ -42,6 +63,21 @@ make lint        # gofmt + go vet
 See [CLAUDE.md](CLAUDE.md) for project rules (language, documentation,
 changelog/versioning, commit conventions) and
 [CHANGELOG.md](CHANGELOG.md) for the history of changes.
+
+### Releasing
+
+1. Move `CHANGELOG.md`'s `[Unreleased]` content under a new
+   `## [vX.Y.Z] - YYYY-MM-DD` heading, and leave a fresh empty
+   `[Unreleased]` on top.
+2. Commit that (`chore(repo): release vX.Y.Z`).
+3. Tag the resulting commit — `git tag -a vX.Y.Z -m vX.Y.Z` — matching
+   the changelog heading exactly, and push it: `git push origin vX.Y.Z`.
+4. Pushing the tag triggers
+   [`.github/workflows/release.yaml`](.github/workflows/release.yaml),
+   which runs GoReleaser (see [`.goreleaser.yaml`](.goreleaser.yaml)) to
+   build linux/darwin × amd64/arm64 binaries and publish them as a
+   GitHub Release — installable right after via `mise` (see
+   [Install](#install)).
 
 ## Commands
 
