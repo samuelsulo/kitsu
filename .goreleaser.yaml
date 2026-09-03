@@ -33,12 +33,15 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
-# CHANGELOG.md (Keep a Changelog) is maintained by hand. The release
-# workflow passes --release-notes with that tag's extracted section, which
-# skips changelog generation on its own; this is only a fallback for a
-# manual `goreleaser release` run without that flag.
-changelog:
-  disable: true
-
+# CHANGELOG.md (Keep a Changelog) is maintained by hand: the release
+# workflow always passes --release-notes with that tag's extracted
+# section, which becomes the GitHub Release body as-is.
+#
+# Do NOT set `disable: true` here: that skips this entire pipe,
+# including the part that loads --release-notes — with it set, the
+# flag is silently ignored and the release body ends up empty (found
+# the hard way on v1.0.0/v1.1.0). Only a manual `goreleaser release`
+# run without --release-notes falls back to this default (a commit
+# list), which never happens in the real release flow.
 release:
   name_template: "{{ .Tag }}"

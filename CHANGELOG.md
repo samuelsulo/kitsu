@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `.goreleaser.yaml` had `changelog.disable: true`, which turned out to
+  skip that entire pipe — including the part that loads
+  `--release-notes` — so the flag added in v1.1.0 was silently
+  ignored and the GitHub Release body stayed empty on both v1.0.0 and
+  v1.1.0. Removed the `disable: true`; a manual `goreleaser release`
+  run without `--release-notes` now falls back to a commit-list
+  changelog instead, but the real release flow (which always passes
+  the flag) is unaffected by that default.
+
 ## [v1.1.0] - 2026-09-03
 
 ### Added
