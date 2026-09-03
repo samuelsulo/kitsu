@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `Makefile` used across projects. `destroy`/`destroy-target` ask for
   confirmation before running Terraform's own (same double-confirmation
   as the original Makefile, since neither passes `-auto-approve`).
+- `terraform` state management and inspection commands: `import`,
+  `state list`/`show`/`rm`, `unlock`, `taint`, `untaint`, `console`,
+  `providers`, `version` and `upgrade`, ported from the "STATE
+  MANAGEMENT" and "INSPECTION" sections of the same Makefile.
+  `state rm` and `unlock` ask for confirmation, matching the originals.
 
 ### Changed
 

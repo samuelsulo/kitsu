@@ -86,6 +86,17 @@ Subcommands:
 | `refresh`                           | Reconcile the state with the real infrastructure, without changing either. |
 | `destroy`                           | Destroy every resource in the target environment. Asks for confirmation, then Terraform's own. |
 | `destroy-target --target=<address>` | Destroy a single resource target. Same double confirmation as `destroy`. |
+| `import <address> <id>`             | Import an existing resource, identified by its provider-specific id, into the Terraform state. |
+| `state list`                        | List every resource in the Terraform state. |
+| `state show <address>`              | Show the state attributes of a single resource. |
+| `state rm <address>`                | Remove a resource from the state without destroying it. Asks for confirmation. |
+| `unlock <lock-id>`                  | Force-release a stuck state lock. Asks for confirmation. |
+| `taint <address>`                   | Mark a resource for recreation on the next apply. |
+| `untaint <address>`                 | Undo a previous `taint`. |
+| `console`                           | Open an interactive console to evaluate expressions against the current state. |
+| `providers`                         | Show the provider requirements and versions in use. |
+| `version`                           | Show the Terraform and provider versions (Terraform's own, not kitsu's — see `kitsu version`). |
+| `upgrade`                           | Re-initialize and upgrade provider/module versions to the latest allowed. |
 
 Example:
 
