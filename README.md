@@ -50,6 +50,7 @@ changelog/versioning, commit conventions) and
 | `version`       | Print kitsu's version info.                              |
 | `hooks install` | Point git at the repository's tracked hooks (`--dir`, default `.githooks`) and make them executable. |
 | `terraform ...` | Run Terraform against the `infrastructure/<env>` convention. See [Terraform workflow](#terraform-workflow). |
+| `website deploy` | Build and deploy the project's website. See [Website deploy](#website-deploy). |
 
 More commands will be added here as they're implemented.
 
@@ -107,12 +108,54 @@ Subcommands:
 | `catalog list`                      | List modules available in the module catalog. |
 | `catalog versions <module>`         | List a catalog module's available versions, newest first. |
 | `catalog vendor <module> <version>` | Copy a module from the catalog into `<infra-dir>/modules/vendor/<module>`, pinned to that version's tag, with provenance recorded in `VENDORED.md`. |
+| `bootstrap-backend`                 | Create (once per AWS account) the S3 bucket for the Terraform state shared by every project in that account: versioning, encryption, public access block, TLS-only policy, lifecycle on noncurrent versions. Idempotent. Operates on the account of the currently active AWS credentials — never an account id passed by hand. |
 
 Example:
 
 ```sh
 kitsu terraform plan --env production
 kitsu terraform apply --env production
+```
+
+## Website deploy
+
+`kitsu website deploy` builds `<website-dir>/` and syncs it to the S3
+bucket + CloudFront distribution of the given environment, read from
+that environment's Terraform state (never guessed or hardcoded) —
+following the company's vue-webapp-standard convention (Vite build,
+`VITE_APP_VERSION`, the footer `SiteVersion` component).
+
+| Flag              | Default          | Description                                                       |
+|-------------------|------------------|---------------------------------------------------------------------|
+| `--env`           | *(required)*     | `sandbox` or `production`.                                        |
+| `--tag`           | —                | Release tag to deploy, e.g. `website/v1.0.1`. Required for `production`, forbidden otherwise. |
+| `--force`         | `false`          | Skip the already-deployed/downgrade guards (production only).     |
+| `--infra-dir`     | `infrastructure` | Infrastructure root directory, relative to the repo root.         |
+| `--website-dir`   | `website`        | Website project directory, relative to the repo root.             |
+| `--terraform-bin` | `terraform`      | Terraform binary to invoke.                                       |
+
+Version tracking:
+
+- **production**: deploys the commit pointed at by the exact `--tag`
+  given (not necessarily the currently checked-out commit), built in an
+  isolated git worktree. The version is injected as `VITE_APP_VERSION`
+  and, once deployed, recorded as a marker object in S3 (one per
+  ever-released tag) plus a `_deploy-versions/current` object naming the
+  live tag. Redeploying an already-deployed tag is a no-op; deploying an
+  older tag than the current one is refused — both require `--force` to
+  go through anyway (e.g. a deliberate rollback).
+- **every other environment** (`sandbox`, ...): deploys whatever commit
+  is currently checked out, versioned by its short SHA.
+
+The `contact_api` Terraform module is optional: an environment without
+it yet still builds and deploys, with the contact form shipping
+disabled.
+
+Example:
+
+```sh
+kitsu website deploy --env sandbox
+kitsu website deploy --env production --tag website/v1.0.1
 ```
 
 ## Configuration

@@ -52,6 +52,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   conventions: `terraform.catalog_repo` and
   `terraform.role_arn_template`, each overridable per invocation with
   `--catalog-repo`/`--role-arn-template`.
+- `terraform bootstrap-backend` command: creates (once per AWS account,
+  idempotently) the S3 bucket for the Terraform state shared by every
+  project in that account — versioning, encryption, public access
+  block, TLS-only policy, lifecycle on noncurrent versions. Ported from
+  the standalone `scripts/bootstrap-terraform-backend.sh` used across
+  projects; always operates on the account of the currently active AWS
+  credentials, never an account id passed by hand, matching the
+  original.
+- `website deploy` command (`internal/website`): builds the website and
+  syncs it to the S3 bucket + CloudFront distribution of the given
+  environment, read from that environment's Terraform state. Ported
+  from the standalone `scripts/deploy-website.sh` used across projects,
+  with the same version-tracking rules: production deploys an explicit
+  `website/vX.Y.Z` tag in an isolated git worktree, tracked via S3
+  markers, refusing to redeploy an already-deployed tag or downgrade to
+  an older one without `--force`; every other environment deploys the
+  currently checked-out commit, versioned by its short SHA. The
+  `contact_api` Terraform module stays optional, matching the original.
 
 ### Changed
 
