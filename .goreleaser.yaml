@@ -1,0 +1,42 @@
+version: 2
+
+project_name: kitsu
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: kitsu
+    main: ./cmd/kitsu
+    binary: kitsu
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X 'github.com/samuelsulo/kitsu/internal/version.Version={{ .Tag }}'
+      - -X 'github.com/samuelsulo/kitsu/internal/version.Commit={{ .FullCommit }}'
+      - -X 'github.com/samuelsulo/kitsu/internal/version.Date={{ .Date }}'
+
+archives:
+  - id: kitsu
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: "checksums.txt"
+
+# CHANGELOG.md (Keep a Changelog) is maintained by hand; don't have
+# GoReleaser generate its own commit-based release notes on top of it.
+changelog:
+  disable: true
+
+release:
+  name_template: "{{ .Tag }}"
