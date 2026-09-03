@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   from `CHANGELOG.md` and passes it to GoReleaser as `--release-notes`,
   so the GitHub Release body is that changelog section instead of
   being empty (changelog generation stays disabled otherwise).
+- `website current`/`website history` commands: read the version
+  tracking `website deploy` writes to S3. `current` prints just the
+  live tag (script-friendly); `history` lists every deployed version,
+  most recently deployed first (not highest version first, so a
+  rollback is visible as such), marking the live one. Both share a new
+  `resolveBucket` helper with `Deploy` (same Terraform-state lookup,
+  no longer duplicated).
 
 ## [v1.0.0] - 2026-09-03
 

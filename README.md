@@ -86,7 +86,7 @@ changelog/versioning, commit conventions) and
 | `version`       | Print kitsu's version info.                              |
 | `hooks install` | Point git at the repository's tracked hooks (`--dir`, default `.githooks`) and make them executable. |
 | `terraform ...` | Run Terraform against the `infrastructure/<env>` convention. See [Terraform workflow](#terraform-workflow). |
-| `website deploy` | Build and deploy the project's website. See [Website deploy](#website-deploy). |
+| `website ...`   | Build/deploy the project's website, or inspect what's deployed. See [Website deploy](#website-deploy). |
 
 More commands will be added here as they're implemented.
 
@@ -194,6 +194,29 @@ Example:
 kitsu website deploy --env sandbox
 kitsu website deploy --env production --tag website/v1.0.1
 ```
+
+### Inspecting deployed versions
+
+`kitsu website current --env <env>` and `kitsu website history --env <env>`
+read the version tracking `deploy` writes (see above) — both take the
+same `--infra-dir`/`--terraform-bin` flags, and only report anything
+for an environment `deploy` actually records markers for (currently
+just `production`).
+
+| Command    | Output |
+|------------|--------|
+| `current`  | Just the tag currently live — nothing else, so it's easy to use in a script: `if [ "$(kitsu website current --env production)" = "$TAG" ]; then ...` |
+| `history`  | Every version ever deployed, **most recently deployed first** (not highest version first — a rollback shows up as such, not as a gap), marking whichever one is currently live. |
+
+```sh
+$ kitsu website history --env production
+website/v1.2.0           2026-09-10 14:32 UTC
+website/v1.1.0           2026-09-05 09:10 UTC  (current)
+website/v1.0.0           2026-09-01 18:00 UTC
+```
+
+(Here, `v1.2.0` was deployed and then rolled back to `v1.1.0` — `history`
+makes that visible; `current` alone would just say `website/v1.1.0`.)
 
 ## Configuration
 
