@@ -74,6 +74,21 @@ conventions shared across projects: one Terraform root at
 			func(r terraform.Runner) error { return r.Refresh() }),
 		newTerraformDestroyCmd(runnerFor),
 		newTerraformDestroyTargetCmd(runnerFor),
+		newTerraformImportCmd(runnerFor),
+		newTerraformStateCmd(runnerFor),
+		newTerraformUnlockCmd(runnerFor),
+		newTerraformAddressCmd(runnerFor, "taint <address>", "Mark a resource for recreation on the next apply",
+			func(r terraform.Runner, address string) error { return r.Taint(address) }),
+		newTerraformAddressCmd(runnerFor, "untaint <address>", "Undo a previous taint",
+			func(r terraform.Runner, address string) error { return r.Untaint(address) }),
+		newTerraformSimpleCmd(runnerFor, "console", "Open an interactive console to evaluate expressions against the current state",
+			func(r terraform.Runner) error { return r.Console() }),
+		newTerraformSimpleCmd(runnerFor, "providers", "Show the provider requirements and versions in use",
+			func(r terraform.Runner) error { return r.Providers() }),
+		newTerraformSimpleCmd(runnerFor, "version", "Show the Terraform and provider versions",
+			func(r terraform.Runner) error { return r.TerraformVersion() }),
+		newTerraformSimpleCmd(runnerFor, "upgrade", "Re-initialize and upgrade provider/module versions to the latest allowed",
+			func(r terraform.Runner) error { return r.Upgrade() }),
 	)
 
 	return cmd
@@ -112,6 +127,100 @@ func newTerraformTargetCmd(runnerFor runnerFactory, use, short string, run func(
 
 	cmd.Flags().StringVar(&target, "target", "", "Resource address to target (required)")
 	cmd.MarkFlagRequired("target")
+
+	return cmd
+}
+
+// newTerraformAddressCmd builds a terraform subcommand that operates on a
+// single resource address, given as a positional argument.
+func newTerraformAddressCmd(runnerFor runnerFactory, use, short string, run func(terraform.Runner, string) error) *cobra.Command {
+	return &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return run(runnerFor(cmd), args[0])
+		},
+	}
+}
+
+func newTerraformImportCmd(runnerFor runnerFactory) *cobra.Command {
+	return &cobra.Command{
+		Use:   "import <address> <id>",
+		Short: "Import an existing resource, identified by its provider-specific id, into the Terraform state",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runnerFor(cmd).Import(args[0], args[1])
+		},
+	}
+}
+
+func newTerraformUnlockCmd(runnerFor runnerFactory) *cobra.Command {
+	return &cobra.Command{
+		Use:   "unlock <lock-id>",
+		Short: "Force-release a stuck state lock",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r := runnerFor(cmd)
+			ok, err := confirm(cmd, fmt.Sprintf(
+				"Force-unlocking state for environment %q. Only do this if you are sure no other apply is running.",
+				r.Env.Name,
+			))
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return fmt.Errorf("aborted")
+			}
+			return r.Unlock(args[0])
+		},
+	}
+}
+
+// newTerraformStateCmd builds the "state" subcommand group, mirroring
+// Terraform's own `terraform state <subcommand>` naming.
+func newTerraformStateCmd(runnerFor runnerFactory) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "state",
+		Short: "Inspect or modify the Terraform state",
+	}
+
+	cmd.AddCommand(
+		&cobra.Command{
+			Use:   "list",
+			Short: "List every resource in the Terraform state",
+			Args:  cobra.NoArgs,
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return runnerFor(cmd).StateList()
+			},
+		},
+		&cobra.Command{
+			Use:   "show <address>",
+			Short: "Show the state attributes of a single resource",
+			Args:  cobra.ExactArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return runnerFor(cmd).StateShow(args[0])
+			},
+		},
+		&cobra.Command{
+			Use:   "rm <address>",
+			Short: "Remove a resource from the state without destroying it",
+			Args:  cobra.ExactArgs(1),
+			RunE: func(cmd *cobra.Command, args []string) error {
+				r := runnerFor(cmd)
+				ok, err := confirm(cmd, fmt.Sprintf(
+					"Removing %q from the Terraform state for environment %q.", args[0], r.Env.Name,
+				))
+				if err != nil {
+					return err
+				}
+				if !ok {
+					return fmt.Errorf("aborted")
+				}
+				return r.StateRemove(args[0])
+			},
+		},
+	)
 
 	return cmd
 }
