@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   tracked hooks directory (`--dir`, default `.githooks`) and makes every
   hook file in it executable. Replaces the standalone
   `scripts/install-hooks.sh` used across projects.
+- `terraform` command group: `init`, `validate`, `fmt`, `fmt-check`,
+  `plan`, `show-plan`, `apply`, `apply-target`, `apply-auto`,
+  `plan-destroy`, `refresh`, `destroy` and `destroy-target`, wrapping
+  Terraform with the `<infra-dir>/live` + `<infra-dir>/environments/<env>`
+  directory convention (`--env`, `--infra-dir`, `--terraform-bin`).
+  Replaces the "TERRAFORM WORKFLOW" section of the per-project Terraform
+  `Makefile` used across projects. `destroy`/`destroy-target` ask for
+  confirmation before running Terraform's own (same double-confirmation
+  as the original Makefile, since neither passes `-auto-approve`).
 
 ### Changed
 
