@@ -22,11 +22,26 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Extract this release's changelog section
+        id: changelog
+        run: |
+          notes_file="${RUNNER_TEMP}/release-notes.md"
+          awk -v tag="${GITHUB_REF_NAME}" '
+            $0 ~ "^## \\[" tag "\\]" { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > "$notes_file"
+          if [ ! -s "$notes_file" ]; then
+            echo "::error::No CHANGELOG.md section found for ${GITHUB_REF_NAME} (expected a '## [${GITHUB_REF_NAME}] - ...' heading)." >&2
+            exit 1
+          fi
+          echo "path=$notes_file" >> "$GITHUB_OUTPUT"
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: release --clean
+          args: release --clean --release-notes=${{ steps.changelog.outputs.path }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

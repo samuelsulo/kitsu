@@ -6,7 +6,7 @@ GitHub Actions workflows for this repository.
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| [`release.yaml`](./release.yaml) | Push of a tag matching `v*.*.*` | Runs [GoReleaser](https://goreleaser.com/) (see [`.goreleaser.yaml`](../../.goreleaser.yaml)) to cross-compile `kitsu` for linux/darwin × amd64/arm64 and publish the resulting archives + checksums as a GitHub Release, named after the tag. |
+| [`release.yaml`](./release.yaml) | Push of a tag matching `v*.*.*` | Extracts that tag's `## [vX.Y.Z]` section from `../../CHANGELOG.md`, then runs [GoReleaser](https://goreleaser.com/) (see [`.goreleaser.yaml`](../../.goreleaser.yaml)) to cross-compile `kitsu` for linux/darwin × amd64/arm64 and publish the resulting archives + checksums as a GitHub Release, named after the tag with that changelog section as its body. |
 
 ## Adding a Workflow
 

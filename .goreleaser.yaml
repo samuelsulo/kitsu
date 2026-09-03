@@ -33,8 +33,10 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
-# CHANGELOG.md (Keep a Changelog) is maintained by hand; don't have
-# GoReleaser generate its own commit-based release notes on top of it.
+# CHANGELOG.md (Keep a Changelog) is maintained by hand. The release
+# workflow passes --release-notes with that tag's extracted section, which
+# skips changelog generation on its own; this is only a fallback for a
+# manual `goreleaser release` run without that flag.
 changelog:
   disable: true
 

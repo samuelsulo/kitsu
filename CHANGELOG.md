@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- The release workflow now extracts the tag's own `## [vX.Y.Z]` section
+  from `CHANGELOG.md` and passes it to GoReleaser as `--release-notes`,
+  so the GitHub Release body is that changelog section instead of
+  being empty (changelog generation stays disabled otherwise).
+
 ## [v1.0.0] - 2026-09-03
 
 ### Added
