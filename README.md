@@ -68,6 +68,7 @@ Global flags, given before the subcommand:
 | `--env`           | `sandbox`        | Environment name (a directory under `<infra-dir>/environments/`). |
 | `--infra-dir`     | `infrastructure` | Infrastructure root directory.                                    |
 | `--terraform-bin` | `terraform`      | Terraform binary to invoke.                                       |
+| `--terraform-docs-bin` | `terraform-docs` | terraform-docs binary to invoke (used by `docs`).             |
 
 Subcommands:
 
@@ -97,6 +98,10 @@ Subcommands:
 | `providers`                         | Show the provider requirements and versions in use. |
 | `version`                           | Show the Terraform and provider versions (Terraform's own, not kitsu's — see `kitsu version`). |
 | `upgrade`                           | Re-initialize and upgrade provider/module versions to the latest allowed. |
+| `output`                            | Show the outputs of the environment's current state. |
+| `output-json`                       | Show the outputs of the environment's current state, in JSON format. |
+| `clean`                             | Remove the local Terraform cache and this environment's saved plan. |
+| `docs`                              | Regenerate each module's README input/output tables with terraform-docs, for every module directory under `<infra-dir>/modules/*/*`. Requires `terraform-docs` on `PATH` (or `--terraform-docs-bin`). |
 
 Example:
 

@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `providers`, `version` and `upgrade`, ported from the "STATE
   MANAGEMENT" and "INSPECTION" sections of the same Makefile.
   `state rm` and `unlock` ask for confirmation, matching the originals.
+- `terraform docs`, `output`, `output-json` and `clean` commands, ported
+  from the "DOCS", "OUTPUT" and "CLEANUP" sections of the same Makefile.
+  `docs` runs `terraform-docs` (`--terraform-docs-bin`, default
+  `terraform-docs`) against every module directory under
+  `<infra-dir>/modules/*/*`.
 
 ### Changed
 
