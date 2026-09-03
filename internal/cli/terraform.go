@@ -108,6 +108,7 @@ conventions shared across projects: one Terraform root at
 		},
 		newTerraformScaffoldCmd(runnerFor),
 		newTerraformCatalogCmd(runnerFor),
+		newTerraformBootstrapBackendCmd(),
 	)
 
 	return cmd
@@ -440,6 +441,45 @@ func newTerraformCatalogCmd(runnerFor runnerFactory) *cobra.Command {
 			},
 		},
 	)
+
+	return cmd
+}
+
+// newTerraformBootstrapBackendCmd builds the "bootstrap-backend" command.
+// Unlike the rest of the group, it doesn't need a Runner: it operates on
+// one AWS account as a whole (via the AWS CLI), not on any particular
+// Terraform environment.
+func newTerraformBootstrapBackendCmd() *cobra.Command {
+	var region string
+	var lifecycleDays int
+
+	cmd := &cobra.Command{
+		Use:   "bootstrap-backend",
+		Short: "Create (once) the S3 bucket for the Terraform state of the current AWS account",
+		Long: `bootstrap-backend creates the S3 bucket that every Terraform
+project's backend.hcl in this AWS account points at (one bucket per
+account, one key per project). It always operates on the account of the
+currently active AWS credentials (aws sts get-caller-identity) — never
+an account id passed by hand — so run it once per account, with that
+account's credentials active, before the first 'kitsu terraform init'
+there.
+
+Idempotent: if the bucket already exists, it only verifies/realigns the
+configuration (versioning, encryption, public access block, ownership,
+TLS-only policy, lifecycle, tags).`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return terraform.BootstrapBackend(terraform.BootstrapBackendOptions{
+				Region:                          region,
+				NoncurrentVersionExpirationDays: lifecycleDays,
+				Stdout:                          cmd.OutOrStdout(),
+				Stderr:                          cmd.ErrOrStderr(),
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&region, "region", "eu-south-1", "AWS region the state bucket lives in")
+	cmd.Flags().IntVar(&lifecycleDays, "noncurrent-version-expiration-days", 90, "Days to keep noncurrent state versions before they're deleted")
 
 	return cmd
 }

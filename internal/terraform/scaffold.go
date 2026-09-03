@@ -45,7 +45,7 @@ func (r Runner) ScaffoldEnvironment(accountID, roleARNTemplate string) error {
 
 	backendHCL := fmt.Sprintf(
 		"bucket = %q\nkey = %q\nregion = %q\nuse_lockfile = true\nencrypt = true\n",
-		fmt.Sprintf("terraform-state-%s-%s-an", accountID, region),
+		StateBucketName(accountID, region),
 		project+"/terraform.tfstate",
 		region,
 	)
