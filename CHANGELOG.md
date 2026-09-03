@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `-ldflags`.
 - `CLAUDE.md` documenting project rules (language, documentation, README
   maintenance, changelog/versioning, commit conventions).
+- `hooks install` command: points `core.hooksPath` at the repository's
+  tracked hooks directory (`--dir`, default `.githooks`) and makes every
+  hook file in it executable. Replaces the standalone
+  `scripts/install-hooks.sh` used across projects.
 
 ### Changed
 

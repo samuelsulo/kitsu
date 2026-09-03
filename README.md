@@ -45,8 +45,9 @@ changelog/versioning, commit conventions) and
 
 ## Commands
 
-| Command   | Description                  |
-|-----------|-------------------------------|
-| `version` | Print kitsu's version info.  |
+| Command         | Description                                              |
+|-----------------|-----------------------------------------------------------|
+| `version`       | Print kitsu's version info.                              |
+| `hooks install` | Point git at the repository's tracked hooks (`--dir`, default `.githooks`) and make them executable. |
 
 More commands will be added here as they're implemented.
