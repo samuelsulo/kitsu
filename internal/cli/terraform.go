@@ -1,0 +1,202 @@
+package cli
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strings"
+
+	"github.com/samuelsulo/kitsu/internal/terraform"
+	"github.com/spf13/cobra"
+)
+
+// newTerraformCmd builds the "terraform" command group: a thin,
+// convention-aware wrapper around the Terraform CLI. It assumes the
+// directory layout shared by kitsu's client projects — one Terraform
+// root at <infra-dir>/live, configured per environment from files under
+// <infra-dir>/environments/<env>/ — so day-to-day commands don't need to
+// repeat -var-file/-backend-config by hand.
+func newTerraformCmd() *cobra.Command {
+	var envName, infraDir, bin string
+
+	cmd := &cobra.Command{
+		Use:   "terraform",
+		Short: "Run Terraform against the infrastructure/<env> convention",
+		Long: `terraform wraps the Terraform CLI with the directory and flag
+conventions shared across projects: one Terraform root at
+<infra-dir>/live, configured per environment from
+<infra-dir>/environments/<env>/{backend.hcl,environment.tfvars}.`,
+	}
+
+	cmd.PersistentFlags().StringVar(&envName, "env", "sandbox", "Environment name (a directory under <infra-dir>/environments/)")
+	cmd.PersistentFlags().StringVar(&infraDir, "infra-dir", "infrastructure", "Infrastructure root directory")
+	cmd.PersistentFlags().StringVar(&bin, "terraform-bin", "terraform", "Terraform binary to invoke")
+
+	// runnerFor builds the Runner for one command invocation, streaming
+	// I/O through cmd itself so tests can redirect it via
+	// SetOut/SetErr/SetIn and interactive prompts (destroy, destroy-target)
+	// read from the real terminal.
+	runnerFor := func(cmd *cobra.Command) terraform.Runner {
+		return terraform.Runner{
+			Env: terraform.Env{
+				Bin:      bin,
+				InfraDir: infraDir,
+				Name:     envName,
+			},
+			Stdout: cmd.OutOrStdout(),
+			Stderr: cmd.ErrOrStderr(),
+			Stdin:  cmd.InOrStdin(),
+		}
+	}
+
+	cmd.AddCommand(
+		newTerraformSimpleCmd(runnerFor, "init", "Initialize Terraform and configure the backend",
+			func(r terraform.Runner) error { return r.Init() }),
+		newTerraformSimpleCmd(runnerFor, "validate", "Initialize (see init) and validate the configuration",
+			func(r terraform.Runner) error { return r.Validate() }),
+		newTerraformSimpleCmd(runnerFor, "fmt", "Format Terraform (.tf/.tfvars) and generic HCL files (e.g. backend.hcl)",
+			func(r terraform.Runner) error { return r.Fmt() }),
+		newTerraformSimpleCmd(runnerFor, "fmt-check", "Check formatting without modifying files (useful in CI)",
+			func(r terraform.Runner) error { return r.FmtCheck() }),
+		newTerraformSimpleCmd(runnerFor, "plan", "Validate (see validate) and generate and save an execution plan",
+			func(r terraform.Runner) error { return r.Plan() }),
+		newTerraformSimpleCmd(runnerFor, "show-plan", "Show the plan previously saved by plan",
+			func(r terraform.Runner) error { return r.ShowPlan() }),
+		newTerraformSimpleCmd(runnerFor, "apply", "Apply the plan previously saved by plan",
+			func(r terraform.Runner) error { return r.Apply() }),
+		newTerraformTargetCmd(runnerFor, "apply-target", "Validate (see validate) and apply changes to a single resource target",
+			func(r terraform.Runner, target string) error { return r.ApplyTarget(target) }),
+		newTerraformSimpleCmd(runnerFor, "apply-auto", "Validate, then plan and apply in one step, without a saved plan (use with caution)",
+			func(r terraform.Runner) error { return r.ApplyAuto() }),
+		newTerraformSimpleCmd(runnerFor, "plan-destroy", "Preview what a destroy would remove, without applying anything",
+			func(r terraform.Runner) error { return r.PlanDestroy() }),
+		newTerraformSimpleCmd(runnerFor, "refresh", "Reconcile the state with the real infrastructure, without changing either",
+			func(r terraform.Runner) error { return r.Refresh() }),
+		newTerraformDestroyCmd(runnerFor),
+		newTerraformDestroyTargetCmd(runnerFor),
+	)
+
+	return cmd
+}
+
+// runnerFactory builds a Runner scoped to one command invocation's flags
+// and I/O streams.
+type runnerFactory func(cmd *cobra.Command) terraform.Runner
+
+// newTerraformSimpleCmd builds a terraform subcommand that takes no
+// arguments of its own beyond the "terraform" group's persistent flags.
+func newTerraformSimpleCmd(runnerFor runnerFactory, use, short string, run func(terraform.Runner) error) *cobra.Command {
+	return &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return run(runnerFor(cmd))
+		},
+	}
+}
+
+// newTerraformTargetCmd builds a terraform subcommand that operates on a
+// single resource address, given via the required --target flag.
+func newTerraformTargetCmd(runnerFor runnerFactory, use, short string, run func(terraform.Runner, string) error) *cobra.Command {
+	var target string
+
+	cmd := &cobra.Command{
+		Use:   use,
+		Short: short,
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return run(runnerFor(cmd), target)
+		},
+	}
+
+	cmd.Flags().StringVar(&target, "target", "", "Resource address to target (required)")
+	cmd.MarkFlagRequired("target")
+
+	return cmd
+}
+
+func newTerraformDestroyCmd(runnerFor runnerFactory) *cobra.Command {
+	return &cobra.Command{
+		Use:   "destroy",
+		Short: "Destroy every resource in the target environment",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r := runnerFor(cmd)
+			ok, err := confirm(cmd, fmt.Sprintf("Destroying all resources for environment %q.", r.Env.Name))
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return fmt.Errorf("aborted")
+			}
+			return r.Destroy()
+		},
+	}
+}
+
+func newTerraformDestroyTargetCmd(runnerFor runnerFactory) *cobra.Command {
+	var target string
+
+	cmd := &cobra.Command{
+		Use:   "destroy-target",
+		Short: "Destroy a single resource target",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r := runnerFor(cmd)
+			ok, err := confirm(cmd, fmt.Sprintf("Destroying target %q for environment %q.", target, r.Env.Name))
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return fmt.Errorf("aborted")
+			}
+			return r.DestroyTarget(target)
+		},
+	}
+
+	cmd.Flags().StringVar(&target, "target", "", "Resource address to target (required)")
+	cmd.MarkFlagRequired("target")
+
+	return cmd
+}
+
+// confirm prints prompt to cmd's output and asks the user to type "yes" on
+// cmd's input, returning whether they did. Used before every destructive
+// operation that isn't otherwise guarded by a saved plan.
+//
+// destroy/destroy-target run the real `terraform destroy`, which asks for
+// its own "yes" on the same input afterwards — so this must read exactly
+// one line and no further, leaving whatever comes after it untouched for
+// that second prompt to read.
+func confirm(cmd *cobra.Command, prompt string) (bool, error) {
+	fmt.Fprintf(cmd.OutOrStdout(), "%s Type 'yes' to confirm: ", prompt)
+
+	line, err := readLine(cmd.InOrStdin())
+	if err != nil && line == "" {
+		return false, nil
+	}
+
+	return strings.TrimSpace(line) == "yes", nil
+}
+
+// readLine reads one newline-terminated line from r a byte at a time, so
+// it never buffers ahead past the line itself: unlike bufio.Reader, it
+// won't silently consume input meant for whatever reads r next.
+func readLine(r io.Reader) (string, error) {
+	var line bytes.Buffer
+	b := make([]byte, 1)
+
+	for {
+		n, err := r.Read(b)
+		if n > 0 {
+			if b[0] == '\n' {
+				return line.String(), nil
+			}
+			line.WriteByte(b[0])
+		}
+		if err != nil {
+			return line.String(), err
+		}
+	}
+}
