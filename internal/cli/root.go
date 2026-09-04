@@ -23,6 +23,7 @@ func NewRootCmd() *cobra.Command {
 	root.AddCommand(newHooksCmd())
 	root.AddCommand(newTerraformCmd())
 	root.AddCommand(newWebsiteCmd())
+	root.AddCommand(newSkillsCmd())
 
 	return root
 }

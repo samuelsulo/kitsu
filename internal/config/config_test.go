@@ -94,6 +94,29 @@ func TestResolveRoleARNTemplate_NotConfigured(t *testing.T) {
 	}
 }
 
+func TestResolveSkillsRepo(t *testing.T) {
+	writeConfig(t, "skills:\n  repo: \"someone/skills\"\n")
+
+	if got, err := ResolveSkillsRepo("someone-else/skills"); err != nil || got != "someone-else/skills" {
+		t.Errorf("ResolveSkillsRepo(explicit) = %q, %v, want %q, nil", got, err, "someone-else/skills")
+	}
+	if got, err := ResolveSkillsRepo(""); err != nil || got != "someone/skills" {
+		t.Errorf("ResolveSkillsRepo(\"\") = %q, %v, want %q, nil", got, err, "someone/skills")
+	}
+}
+
+func TestResolveSkillsRepo_FallsBackToDefault(t *testing.T) {
+	withConfigDir(t)
+
+	got, err := ResolveSkillsRepo("")
+	if err != nil {
+		t.Fatalf("ResolveSkillsRepo(\"\") with no config: %v", err)
+	}
+	if got != DefaultSkillsRepo {
+		t.Errorf("ResolveSkillsRepo(\"\") = %q, want the default %q", got, DefaultSkillsRepo)
+	}
+}
+
 // writeConfig points Path() at a temp config dir and writes content as
 // its config.yaml.
 func writeConfig(t *testing.T, content string) {

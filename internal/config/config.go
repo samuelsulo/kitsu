@@ -17,6 +17,7 @@ import (
 // Path().
 type Config struct {
 	Terraform TerraformConfig `yaml:"terraform"`
+	Skills    SkillsConfig    `yaml:"skills"`
 }
 
 // TerraformConfig holds personal defaults for the `terraform` command
@@ -30,6 +31,17 @@ type TerraformConfig struct {
 	// AWS account id (e.g. "arn:aws:iam::%s:role/MyAdminRole").
 	RoleARNTemplate string `yaml:"role_arn_template"`
 }
+
+// SkillsConfig holds personal defaults for the `skills` command group.
+type SkillsConfig struct {
+	// Repo is the GitHub "owner/repo" of the Claude Code skills
+	// repository used by `kitsu skills install`/`skills package`.
+	Repo string `yaml:"repo"`
+}
+
+// DefaultSkillsRepo is used by ResolveSkillsRepo when neither an
+// explicit flag nor skills.repo in the config file is set.
+const DefaultSkillsRepo = "samuelsulo/claude-skills"
 
 // Path returns the config file's path: <user config dir>/kitsu/config.yaml
 // (see os.UserConfigDir — $XDG_CONFIG_HOME/kitsu/config.yaml on Linux).
@@ -78,6 +90,25 @@ func ResolveCatalogRepo(explicit string) (string, error) {
 func ResolveRoleARNTemplate(explicit string) (string, error) {
 	return resolve(explicit, func(c Config) string { return c.Terraform.RoleARNTemplate },
 		"--role-arn-template", "terraform.role_arn_template")
+}
+
+// ResolveSkillsRepo returns explicit if non-empty, otherwise the config
+// file's skills.repo, otherwise DefaultSkillsRepo — unlike the other
+// Resolve* functions, this one never errors: there's always a usable
+// value.
+func ResolveSkillsRepo(explicit string) (string, error) {
+	if explicit != "" {
+		return explicit, nil
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		return "", err
+	}
+	if cfg.Skills.Repo != "" {
+		return cfg.Skills.Repo, nil
+	}
+	return DefaultSkillsRepo, nil
 }
 
 // resolve returns explicit if non-empty, otherwise the value get reads
