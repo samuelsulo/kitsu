@@ -19,7 +19,7 @@ var tagRefPattern = regexp.MustCompile(`^refs/tags/(.+)$`)
 
 // listCatalogTags returns every tag in repo matching refspec (e.g.
 // "<module>/*", or "" for every tag), stripped of the "refs/tags/"
-// prefix and any peeled-tag "^{}" suffix.
+// prefix.
 func listCatalogTags(repo, refspec string) ([]string, error) {
 	args := []string{"ls-remote", "--tags", repo}
 	if refspec != "" {
@@ -39,8 +39,16 @@ func listCatalogTags(repo, refspec string) ([]string, error) {
 		if len(fields) != 2 {
 			continue
 		}
+		// For an annotated tag, ls-remote lists two lines: the tag ref
+		// itself, and a second, "peeled" refs/tags/<name>^{} line for the
+		// commit it points to. Skip the peeled one — the tag ref alone
+		// already gives us the name — or every annotated tag's version
+		// would be listed (and so printed) twice.
+		if strings.HasSuffix(fields[1], "^{}") {
+			continue
+		}
 		if m := tagRefPattern.FindStringSubmatch(fields[1]); m != nil {
-			tags = append(tags, strings.TrimSuffix(m[1], "^{}"))
+			tags = append(tags, m[1])
 		}
 	}
 	return tags, nil

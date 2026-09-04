@@ -11,7 +11,10 @@ import (
 // newTestCatalogRepo creates a local git repository, seeded with two
 // tagged modules, that stands in for a real module catalog: git
 // ls-remote/clone work the same against a local path as against a real
-// remote URL.
+// remote URL. Tags are annotated (as kitsu's own release tags are, see
+// CLAUDE.md) rather than lightweight, since `git ls-remote --tags`
+// lists an extra, peeled ref per annotated tag — a case
+// listCatalogTags/CatalogVersions must not double-count.
 func newTestCatalogRepo(t *testing.T) string {
 	t.Helper()
 
@@ -39,7 +42,7 @@ func newTestCatalogRepo(t *testing.T) string {
 		}
 		run("add", ".")
 		run("commit", "--quiet", "-m", "add "+path)
-		run("tag", tag)
+		run("tag", "-a", tag, "-m", tag)
 	}
 
 	writeAndCommit("modules/module-a/main.tf", "# v1.0.0\n", "module-a/v1.0.0")

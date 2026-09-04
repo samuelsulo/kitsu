@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `terraform catalog versions` no longer lists (and prints) each
+  annotated tag's version twice. `git ls-remote --tags` returns an
+  extra, "peeled" `^{}` ref per annotated tag alongside the tag ref
+  itself; the catalog tag listing counted both as separate versions.
+
 ## [v1.5.0] - 2026-09-04
 
 ### Added
