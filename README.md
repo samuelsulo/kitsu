@@ -87,6 +87,7 @@ changelog/versioning, commit conventions) and
 | `hooks install` | Point git at the repository's tracked hooks (`--dir`, default `.githooks`) and make them executable. |
 | `terraform ...` | Run Terraform against the `infrastructure/<env>` convention. See [Terraform workflow](#terraform-workflow). |
 | `website ...`   | Build/deploy the project's website, or inspect what's deployed. See [Website deploy](#website-deploy). |
+| `skills ...`     | Install or package a Claude Code skill. See [Skills](#skills). |
 
 More commands will be added here as they're implemented.
 
@@ -219,6 +220,31 @@ website/v1.0.0           2026-09-01 18:00 UTC
 (Here, `v1.2.0` was deployed and then rolled back to `v1.1.0` — `history`
 makes that visible; `current` alone would just say `website/v1.1.0`.)
 
+## Skills
+
+`kitsu skills install <skill>` and `kitsu skills package <skill>`
+manage a [Claude Code](https://claude.com/claude-code) skill living at
+`skills/<skill>/` (a folder with a `SKILL.md`) in a skills repository.
+
+| Command                     | Does |
+|------------------------------|------|
+| `install <skill>`           | Copies `skills/<skill>/` into `~/.claude/skills/<skill>/` (overwritten if it already exists), so Claude Code picks it up. |
+| `package <skill> [--output-dir <dir>]` | Zips `skills/<skill>/` into `<output-dir>/<skill>.zip` (default `.`), ready to upload to a new machine/Claude instance. |
+
+Both default to cloning fresh from `--repo` (a GitHub `owner/repo`,
+defaulting to `skills.repo` in the config file below, or
+`samuelsulo/claude-skills` if neither is set) into a temp directory.
+Pass `--local` to instead read `skills/<skill>/` from the current git
+repository — e.g. while working inside a checkout of the skills repo
+itself, to test a change before it's pushed (`--repo` and `--local`
+are mutually exclusive).
+
+```sh
+kitsu skills install my-skill                       # from the default/configured repo
+kitsu skills install my-skill --repo someone/skills  # from a specific one
+kitsu skills package my-skill --local --output-dir ./dist
+```
+
 ## Configuration
 
 Personal defaults that vary by user but not by project — not project
@@ -234,9 +260,17 @@ terraform:
   # IAM role ARN template used by 'scaffold environment', with %s
   # standing in for the AWS account id (or pass --role-arn-template).
   role_arn_template: "arn:aws:iam::%s:role/<YourAdminRole>"
+
+skills:
+  # GitHub "owner/repo" of the Claude Code skills repo used by
+  # 'skills install'/'skills package' (or pass --repo explicitly).
+  # Defaults to "samuelsulo/claude-skills" if omitted entirely.
+  repo: "<you>/claude-skills"
 ```
 
 Every value here can be overridden per invocation with the matching
 flag; the config file only supplies the default when the flag is
-omitted. Commands that need a value neither the flag nor the config
-file provides fail with a message naming both ways to set it.
+omitted. Most commands that need a value neither the flag nor the
+config file provides fail with a message naming both ways to set it —
+`skills.repo` is the one exception, falling back to
+`samuelsulo/claude-skills` instead of erroring.

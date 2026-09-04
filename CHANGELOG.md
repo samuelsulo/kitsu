@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `skills` command group: `install <skill>` and `package <skill>
+  [--output-dir <dir>]`, ported from the standalone `install-skill.sh`
+  and `package-skill.sh` scripts used in the Claude Code skills
+  repository. Both default to cloning fresh from `--repo` (a GitHub
+  `owner/repo`, defaulting to the new `skills.repo` config key, or
+  `samuelsulo/claude-skills` if neither is set) into a temp directory —
+  the scripts' local-only "producer" side stays available via
+  `--local` (mutually exclusive with `--repo`), for testing a skill
+  from inside its own repo before pushing. `package` uses Go's
+  `archive/zip` directly, dropping the scripts' `zip`/`python3`
+  fallback dance.
+
 ## [v1.2.0] - 2026-09-04
 
 ### Added
