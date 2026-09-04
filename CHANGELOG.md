@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v1.3.0] - 2026-09-04
+
 ### Added
 
 - `skills` command group: `install <skill>` and `package <skill>
