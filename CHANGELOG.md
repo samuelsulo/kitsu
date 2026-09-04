@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `terraform catalog release <module> <version> [--push]` command,
+  ported from the standalone `scripts/release-module.sh` used in the
+  Terraform module catalog repository itself (the "producer" side of
+  that catalog, complementing `catalog list`/`versions`/`vendor`'s
+  "consumer" side). Unlike its siblings, it operates on the *current*
+  git repository rather than a `--catalog-repo` you name — run it from
+  inside a checkout of the catalog itself. Takes `vX.Y.Z` (not the
+  original script's bare `X.Y.Z`), matching `catalog vendor`'s own
+  argument convention and the `<module>/vX.Y.Z` tag format.
+
 ## [v1.1.1] - 2026-09-03
 
 ### Fixed

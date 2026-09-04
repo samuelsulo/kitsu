@@ -145,6 +145,7 @@ Subcommands:
 | `catalog list`                      | List modules available in the module catalog. |
 | `catalog versions <module>`         | List a catalog module's available versions, newest first. |
 | `catalog vendor <module> <version>` | Copy a module from the catalog into `<infra-dir>/modules/vendor/<module>`, pinned to that version's tag, with provenance recorded in `VENDORED.md`. |
+| `catalog release <module> <version> [--push]` | Run from *inside a checkout of the catalog itself* (not a project that vendors from it): finalizes that module's `CHANGELOG.md` entry, updates its version cell in `<modules-dir>/README.md` (default `modules`), commits both, and tags `<module>/vX.Y.Z`. Refuses if any other tracked change is pending, so nothing unrelated is swept into the release commit. |
 | `bootstrap-backend`                 | Create (once per AWS account) the S3 bucket for the Terraform state shared by every project in that account: versioning, encryption, public access block, TLS-only policy, lifecycle on noncurrent versions. Idempotent. Operates on the account of the currently active AWS credentials — never an account id passed by hand. |
 
 Example:
