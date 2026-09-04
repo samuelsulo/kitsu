@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v1.5.0] - 2026-09-04
+
 ### Added
 
 - `config` command group: `get <key>`, `set <key> <value>`,
