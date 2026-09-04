@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v1.2.0] - 2026-09-04
+
 ### Added
 
 - `terraform catalog release <module> <version> [--push]` command,
