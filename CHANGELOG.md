@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `skills list` and `skills show <skill>` commands. `list` prints
+  every skill's folder name (a folder counts as a skill if it has a
+  `SKILL.md`), sorted, without reading any `SKILL.md`. `show` parses a
+  skill's `SKILL.md` YAML frontmatter and prints its `name` and
+  `description` — erroring if the frontmatter's `name` doesn't match
+  the skill's own folder name, since `install`/`package`/`show` all
+  address a skill by that folder name alone. Same `--repo`/`--local`
+  flags as `install`/`package`.
+
 ## [v1.3.0] - 2026-09-04
 
 ### Added

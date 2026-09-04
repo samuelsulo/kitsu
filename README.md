@@ -222,16 +222,18 @@ makes that visible; `current` alone would just say `website/v1.1.0`.)
 
 ## Skills
 
-`kitsu skills install <skill>` and `kitsu skills package <skill>`
-manage a [Claude Code](https://claude.com/claude-code) skill living at
-`skills/<skill>/` (a folder with a `SKILL.md`) in a skills repository.
+`kitsu skills` manages a [Claude Code](https://claude.com/claude-code)
+skill living at `skills/<skill>/` (a folder with a `SKILL.md`) in a
+skills repository.
 
 | Command                     | Does |
 |------------------------------|------|
+| `list`                       | Prints every skill's folder name, one per line, sorted. |
+| `show <skill>`               | Prints the skill's `name` and `description`, read from its `SKILL.md` frontmatter. Errors if the frontmatter's `name` doesn't match the folder name — every other command addresses a skill by that folder name alone, so the two must agree. |
 | `install <skill>`           | Copies `skills/<skill>/` into `~/.claude/skills/<skill>/` (overwritten if it already exists), so Claude Code picks it up. |
 | `package <skill> [--output-dir <dir>]` | Zips `skills/<skill>/` into `<output-dir>/<skill>.zip` (default `.`), ready to upload to a new machine/Claude instance. |
 
-Both default to cloning fresh from `--repo` (a GitHub `owner/repo`,
+All four default to cloning fresh from `--repo` (a GitHub `owner/repo`,
 defaulting to `skills.repo` in the config file below, or
 `samuelsulo/claude-skills` if neither is set) into a temp directory.
 Pass `--local` to instead read `skills/<skill>/` from the current git
@@ -240,7 +242,8 @@ itself, to test a change before it's pushed (`--repo` and `--local`
 are mutually exclusive).
 
 ```sh
-kitsu skills install my-skill                       # from the default/configured repo
+kitsu skills list                                    # from the default/configured repo
+kitsu skills show my-skill
 kitsu skills install my-skill --repo someone/skills  # from a specific one
 kitsu skills package my-skill --local --output-dir ./dist
 ```
