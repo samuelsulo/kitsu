@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v1.4.0] - 2026-09-04
+
 ### Added
 
 - `skills list` and `skills show <skill>` commands. `list` prints
