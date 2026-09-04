@@ -234,7 +234,7 @@ skills repository.
 | `package <skill> [--output-dir <dir>]` | Zips `skills/<skill>/` into `<output-dir>/<skill>.zip` (default `.`), ready to upload to a new machine/Claude instance. |
 
 All four default to cloning fresh from `--repo` (a GitHub `owner/repo`,
-defaulting to `skills.repo` in the config file below, or
+defaulting to `skills.repo` in the config files below, or
 `samuelsulo/claude-skills` if neither is set) into a temp directory.
 Pass `--local` to instead read `skills/<skill>/` from the current git
 repository — e.g. while working inside a checkout of the skills repo
@@ -251,9 +251,17 @@ kitsu skills package my-skill --local --output-dir ./dist
 ## Configuration
 
 Personal defaults that vary by user but not by project — not project
-conventions, which stay as flags — live in a per-user config file:
-`$XDG_CONFIG_HOME/kitsu/config.yaml` (or the OS-appropriate equivalent
-of `~/.config/kitsu/config.yaml`).
+conventions, which stay as flags — live in two YAML files sharing the
+same schema:
+
+- **Global** (per-user): `$XDG_CONFIG_HOME/kitsu/config.yaml` (or the
+  OS-appropriate equivalent of `~/.config/kitsu/config.yaml`).
+- **Local** (per-project): `.kitsu.yaml` at the root of the current git
+  repository — checked into it, so a value applies to everyone working
+  on the project, not just you.
+
+Where both set the same key, the local file wins. Every command that
+reads a config value reads this merged, effective config.
 
 ```yaml
 terraform:
@@ -272,8 +280,31 @@ skills:
 ```
 
 Every value here can be overridden per invocation with the matching
-flag; the config file only supplies the default when the flag is
-omitted. Most commands that need a value neither the flag nor the
+flag; the config files only supply the default when the flag is
+omitted. Most commands that need a value neither the flag nor either
 config file provides fail with a message naming both ways to set it —
 `skills.repo` is the one exception, falling back to
 `samuelsulo/claude-skills` instead of erroring.
+
+### `kitsu config`
+
+`kitsu config` reads and edits the two files above directly, addressing
+a value by its dot-separated key (e.g. `terraform.catalog_repo`, as
+shown in the YAML above).
+
+| Command                     | Does |
+|------------------------------|------|
+| `get <key>`                  | Prints `<key>`'s effective value (local, falling back to global) — or, with `--global`/`--local`, that one file's raw value. |
+| `set <key> <value> (--global\|--local)` | Writes `<value>` for `<key>` into one file. `--global`/`--local` is required — the wrong one means either leaking a personal value into a shared repository, or a project setting silently only applying to you. |
+| `unset <key> (--global\|--local)` | Clears `<key>` in one file (same scope requirement as `set`). |
+| `show`                        | Prints the whole config as YAML — effective by default, or one file's raw content with `--global`/`--local`. |
+| `path`                        | Prints the config file path(s): global first, then local if run inside a git repository. |
+| `edit (--global\|--local)`    | Opens one file in `$EDITOR`, creating it first if it doesn't exist. |
+
+```sh
+kitsu config set --global skills.repo someone/claude-skills
+kitsu config set --local terraform.catalog_repo git@github.com:acme/catalog.git  # this project only
+kitsu config get terraform.catalog_repo   # effective value: local, falling back to global
+kitsu config show
+kitsu config edit --local
+```

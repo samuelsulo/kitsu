@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `config` command group: `get <key>`, `set <key> <value>`,
+  `unset <key>`, `show`, `path` and `edit`, to read and edit kitsu's
+  configuration directly instead of hand-editing YAML. A key is a
+  dot-separated path (e.g. `terraform.catalog_repo`).
+- Local, per-project configuration: a `.kitsu.yaml` at the root of the
+  current git repository, checked into it, overriding the existing
+  per-user global config file key by key. Every command that reads a
+  config value now reads this merged (local-over-global) config, not
+  just the global file.
+
 ## [v1.4.0] - 2026-09-04
 
 ### Added
