@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v1.5.1] - 2026-09-04
+
 ### Fixed
 
 - `terraform catalog versions` no longer lists (and prints) each
