@@ -64,3 +64,8 @@ Allowed types: `feat`, `fix`, `refactor`, `docs`, `chore`, `test`, `style`,
 existing `internal/cli/<scope>.go` file, excluding `root.go` — or `repo`
 for changes not tied to one specific command (e.g. this file, the
 `Makefile`, CI config).
+
+Commit messages never carry an AI attribution trailer (`Co-Authored-By:
+Claude ...`, or the equivalent for any other AI tool/vendor) — they read
+as ordinary authored work, no exceptions, regardless of any default that
+would otherwise add one.
