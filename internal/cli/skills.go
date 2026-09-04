@@ -15,7 +15,7 @@ func newSkillsCmd() *cobra.Command {
 		Short: "Install and package Claude Code skills",
 	}
 
-	cmd.AddCommand(newSkillsInstallCmd(), newSkillsPackageCmd())
+	cmd.AddCommand(newSkillsInstallCmd(), newSkillsPackageCmd(), newSkillsListCmd(), newSkillsShowCmd())
 
 	return cmd
 }
@@ -74,6 +74,75 @@ change before it's pushed.`,
 			return err
 		}
 		return skills.Install(skills.InstallOptions{
+			Skill:  args[0],
+			Local:  local,
+			Repo:   repo,
+			Stdout: cmd.OutOrStdout(),
+			Stderr: cmd.ErrOrStderr(),
+		})
+	}
+
+	return cmd
+}
+
+func newSkillsListCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List every skill's name",
+		Long: `list prints the name of every skill folder under skills/ — one
+per line, sorted — without reading each one's SKILL.md (see 'show'
+for that).
+
+By default, it clones fresh into a temp directory from --repo (a
+GitHub "owner/repo", defaulting to skills.repo in the kitsu config
+file, or "samuelsulo/claude-skills" if neither is set). Pass --local
+to instead read skills/ from the current git repository.`,
+		Args: cobra.NoArgs,
+	}
+
+	resolve := skillsRepoFlags(cmd)
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		repo, local, err := resolve()
+		if err != nil {
+			return err
+		}
+		return skills.List(skills.ListOptions{
+			Local:  local,
+			Repo:   repo,
+			Stdout: cmd.OutOrStdout(),
+			Stderr: cmd.ErrOrStderr(),
+		})
+	}
+
+	return cmd
+}
+
+func newSkillsShowCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "show <skill>",
+		Short: "Show a skill's name and description",
+		Long: `show prints a skill's name and description, read from its
+SKILL.md frontmatter. The frontmatter's name must match <skill> (the
+folder it lives in) — show errors otherwise, since every other skills
+command relies on that invariant to address a skill by its folder
+name alone.
+
+By default, it clones fresh into a temp directory from --repo (a
+GitHub "owner/repo", defaulting to skills.repo in the kitsu config
+file, or "samuelsulo/claude-skills" if neither is set). Pass --local
+to instead read skills/<skill>/ from the current git repository.`,
+		Args: cobra.ExactArgs(1),
+	}
+
+	resolve := skillsRepoFlags(cmd)
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		repo, local, err := resolve()
+		if err != nil {
+			return err
+		}
+		return skills.Show(skills.ShowOptions{
 			Skill:  args[0],
 			Local:  local,
 			Repo:   repo,
