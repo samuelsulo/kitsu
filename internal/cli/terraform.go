@@ -417,7 +417,7 @@ func newTerraformCatalogCmd(runnerFor runnerFactory) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "catalog",
-		Short: "List and vendor modules from the Terraform module catalog",
+		Short: "List, vendor and release modules from the Terraform module catalog",
 	}
 
 	cmd.PersistentFlags().StringVar(&catalogRepo, "catalog-repo", "",
@@ -460,7 +460,54 @@ func newTerraformCatalogCmd(runnerFor runnerFactory) *cobra.Command {
 				return runnerFor(cmd).CatalogVendor(repo, args[0], args[1])
 			},
 		},
+		newTerraformCatalogReleaseCmd(),
 	)
+
+	return cmd
+}
+
+// newTerraformCatalogReleaseCmd builds the "release" command: unlike
+// list/versions/vendor, it operates on the *current* git repository —
+// expected to be a checkout of the module catalog itself — rather than
+// a --catalog-repo you name, so it takes neither runnerFor nor
+// --catalog-repo.
+func newTerraformCatalogReleaseCmd() *cobra.Command {
+	var modulesDir string
+	var push bool
+
+	cmd := &cobra.Command{
+		Use:   "release <module> <version>",
+		Short: "Finalize and tag a module's release in the current catalog checkout",
+		Long: `release finalizes one module's release inside the current git
+repository — run this from within a checkout of the module catalog
+itself, not from a project that merely vendors from it (that's
+'catalog vendor').
+
+It turns the module's own CHANGELOG.md "## Unreleased" section into
+"## [X.Y.Z] - <date>" (or leaves an already-prepared entry for that
+version as-is, so preparing the changelog by hand first and re-running
+this is idempotent), updates its version cell in
+<modules-dir>/README.md, commits both, and creates the annotated
+"<module>/vX.Y.Z" tag.
+
+Refuses to run if any other tracked change is pending outside the
+module's own directory and the README index, so nothing unrelated gets
+swept into the release commit.`,
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return terraform.ReleaseModule(terraform.ReleaseModuleOptions{
+				Module:     args[0],
+				Version:    args[1],
+				ModulesDir: modulesDir,
+				Push:       push,
+				Stdout:     cmd.OutOrStdout(),
+				Stderr:     cmd.ErrOrStderr(),
+			})
+		},
+	}
+
+	cmd.Flags().StringVar(&modulesDir, "modules-dir", "modules", "Modules directory, relative to the catalog repo's root")
+	cmd.Flags().BoolVar(&push, "push", false, "Also push the current branch and the new tag to origin")
 
 	return cmd
 }
