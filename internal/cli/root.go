@@ -24,6 +24,7 @@ func NewRootCmd() *cobra.Command {
 	root.AddCommand(newTerraformCmd())
 	root.AddCommand(newWebsiteCmd())
 	root.AddCommand(newSkillsCmd())
+	root.AddCommand(newConfigCmd())
 
 	return root
 }
