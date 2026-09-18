@@ -141,7 +141,7 @@ Subcommands:
 | `output-json`                       | Show the outputs of the environment's current state, in JSON format. |
 | `clean`                             | Remove the local Terraform cache and this environment's saved plan. |
 | `docs`                              | Regenerate each module's README input/output tables with terraform-docs, for every module directory under `<infra-dir>/modules/*/*`. Requires `terraform-docs` on `PATH` (or `--terraform-docs-bin`). |
-| `scaffold environment`               | Scaffold `<infra-dir>/environments/<env>/` with empty `environment.tfvars` and `backend.hcl` files (skipping either that already exists), ready to be filled in by hand. `--env` must be `sandbox` or `production`. |
+| `scaffold environment`               | Scaffold `<infra-dir>/environments/<env>/` with empty `environment.tfvars` and `backend.hcl` files (skipping either that already exists), ready to be filled in by hand. `--env` must be one of `sandbox`, `development`, `testing`, `staging`, `qa`, `preprod`, `production`. |
 | `scaffold module <name>`            | Scaffold `<infra-dir>/modules/local/<name>/` with the standard empty module files (`main.tf`, `variables.tf`, `outputs.tf`, `versions.tf`, `README.md`), skipping any that already exist. |
 | `scaffold infra --repo=<url> [--ref=<ref>] [--force]` | Replace the whole `<infra-dir>` with a fresh copy of an existing Terraform project repository (`--ref`: a branch or tag, defaults to the repo's default branch), for bootstrapping a new project from one that already exists. Refuses a non-empty `<infra-dir>` unless `--force`, which wipes it first. |
 | `catalog list`                      | List modules available in the module catalog. |

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/samuelsulo/kitsu/internal/config"
@@ -349,6 +350,10 @@ func readLine(r io.Reader) (string, error) {
 	}
 }
 
+// validScaffoldEnvNames are the environment names newTerraformScaffoldEnvironmentCmd
+// accepts for --env.
+var validScaffoldEnvNames = []string{"sandbox", "development", "testing", "staging", "qa", "preprod", "production"}
+
 // newTerraformScaffoldCmd builds the "scaffold" subcommand group.
 func newTerraformScaffoldCmd(runnerFor runnerFactory) *cobra.Command {
 	cmd := &cobra.Command{
@@ -373,8 +378,8 @@ any particular cloud provider or backend convention.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := runnerFor(cmd)
 
-			if r.Env.Name != "sandbox" && r.Env.Name != "production" {
-				return fmt.Errorf("--env must be either \"sandbox\" or \"production\", got %q", r.Env.Name)
+			if !slices.Contains(validScaffoldEnvNames, r.Env.Name) {
+				return fmt.Errorf("--env must be one of %s, got %q", strings.Join(validScaffoldEnvNames, ", "), r.Env.Name)
 			}
 
 			return r.ScaffoldEnvironment()

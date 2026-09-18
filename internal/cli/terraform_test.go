@@ -42,8 +42,18 @@ func TestTerraformScaffoldEnvironment_InvalidEnv(t *testing.T) {
 	if err == nil {
 		t.Fatal("scaffold environment --env prod: expected an error, got nil")
 	}
-	if !strings.Contains(err.Error(), "--env must be") {
-		t.Errorf("scaffold environment --env prod: error = %q, want it to mention --env", err)
+	if !strings.Contains(err.Error(), "--env must be one of") {
+		t.Errorf("scaffold environment --env prod: error = %q, want it to mention the allowed --env values", err)
+	}
+}
+
+func TestTerraformScaffoldEnvironment_ValidEnvNames(t *testing.T) {
+	for _, env := range validScaffoldEnvNames {
+		t.Run(env, func(t *testing.T) {
+			if err := runTerraform(t, "scaffold", "environment", "--env", env); err != nil {
+				t.Errorf("scaffold environment --env %s: %v", env, err)
+			}
+		})
 	}
 }
 

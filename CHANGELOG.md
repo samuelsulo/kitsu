@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `live/project.auto.tfvars` and an AWS account id/IAM role template to
   populate them. `--account-id` and `--role-arn-template` are gone.
 
+- `terraform scaffold environment --env` now also accepts `development`,
+  `testing`, `staging`, `qa` and `preprod`, in addition to `sandbox` and
+  `production`.
+
 ### Removed
 
 - `terraform.role_arn_template` config key, now unused since
