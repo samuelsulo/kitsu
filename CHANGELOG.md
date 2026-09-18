@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.0.0] - 2026-09-18
+
 ### Added
 
 - `config keys`, to list every valid config key in a table alongside a
@@ -19,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `environment.tfvars`/`backend.hcl` files, instead of reading
   `live/project.auto.tfvars` and an AWS account id/IAM role template to
   populate them. `--account-id` and `--role-arn-template` are gone.
-
 - `terraform scaffold environment --env` now also accepts `development`,
   `testing`, `staging`, `qa` and `preprod`, in addition to `sandbox` and
   `production`.
