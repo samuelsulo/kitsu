@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/samuelsulo/kitsu/internal/config"
+	"github.com/samuelsulo/kitsu/internal/git"
 	"github.com/samuelsulo/kitsu/internal/terraform"
 	"github.com/spf13/cobra"
 )
@@ -396,10 +397,12 @@ func newTerraformScaffoldInfraCmd(runnerFor runnerFactory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "infra",
 		Short: "Replace <infra-dir> with a fresh copy of an existing Terraform project repository",
-		Long: `infra clones repo (at --ref, a branch or tag, or the repository's
-default branch if --ref is omitted) and replaces <infra-dir> with its
-contents, for bootstrapping a new project from an existing Terraform
-codebase rather than starting from scratch.
+		Long: `infra clones --repo (a GitHub "owner/repo", defaulting to
+terraform.infra_repo in the kitsu config file) at --ref (a branch or
+tag, or the repository's default branch if --ref is omitted) and
+replaces <infra-dir> with its contents, for bootstrapping a new
+project from an existing Terraform codebase rather than starting from
+scratch.
 
 Refuses to touch <infra-dir> if it already exists and is not empty —
 pass --force to wipe and replace it anyway. --force fully replaces
@@ -415,11 +418,11 @@ needed.`,
 				return err
 			}
 
-			return r.ScaffoldInfra(resolvedRepo, ref, force)
+			return r.ScaffoldInfra(git.CloneURL(resolvedRepo), ref, force)
 		},
 	}
 
-	cmd.Flags().StringVar(&repo, "repo", "", "Git URL of the existing Terraform project to import (defaults to terraform.infra_repo in the kitsu config file)")
+	cmd.Flags().StringVar(&repo, "repo", "", `GitHub "owner/repo" of the existing Terraform project to import (defaults to terraform.infra_repo in the kitsu config file)`)
 	cmd.Flags().StringVar(&ref, "ref", "", "Branch or tag to check out (defaults to the repository's default branch)")
 	cmd.Flags().BoolVar(&force, "force", false, "Replace <infra-dir> even if it already exists and is not empty")
 
@@ -448,7 +451,15 @@ func newTerraformCatalogCmd(runnerFor runnerFactory) *cobra.Command {
 	}
 
 	cmd.PersistentFlags().StringVar(&catalogRepo, "catalog-repo", "",
-		"Git URL of the module catalog (defaults to terraform.catalog_repo in the kitsu config file)")
+		`GitHub "owner/repo" of the module catalog (defaults to terraform.catalog_repo in the kitsu config file)`)
+
+	resolveCatalogRepo := func() (string, error) {
+		ownerRepo, err := config.ResolveCatalogRepo(catalogRepo)
+		if err != nil {
+			return "", err
+		}
+		return git.CloneURL(ownerRepo), nil
+	}
 
 	cmd.AddCommand(
 		&cobra.Command{
@@ -456,7 +467,7 @@ func newTerraformCatalogCmd(runnerFor runnerFactory) *cobra.Command {
 			Short: "List modules available in the catalog",
 			Args:  cobra.NoArgs,
 			RunE: func(cmd *cobra.Command, args []string) error {
-				repo, err := config.ResolveCatalogRepo(catalogRepo)
+				repo, err := resolveCatalogRepo()
 				if err != nil {
 					return err
 				}
@@ -468,7 +479,7 @@ func newTerraformCatalogCmd(runnerFor runnerFactory) *cobra.Command {
 			Short: "List available versions of a catalog module, newest first",
 			Args:  cobra.ExactArgs(1),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				repo, err := config.ResolveCatalogRepo(catalogRepo)
+				repo, err := resolveCatalogRepo()
 				if err != nil {
 					return err
 				}
@@ -480,7 +491,7 @@ func newTerraformCatalogCmd(runnerFor runnerFactory) *cobra.Command {
 			Short: "Copy a module from the catalog into modules/vendor/, pinned to a tag",
 			Args:  cobra.ExactArgs(2),
 			RunE: func(cmd *cobra.Command, args []string) error {
-				repo, err := config.ResolveCatalogRepo(catalogRepo)
+				repo, err := resolveCatalogRepo()
 				if err != nil {
 					return err
 				}

@@ -36,12 +36,13 @@ type Config struct {
 // TerraformConfig holds personal defaults for the `terraform` command
 // group.
 type TerraformConfig struct {
-	// CatalogRepo is the git URL of the Terraform module catalog used by
-	// `kitsu terraform catalog`.
-	CatalogRepo string `yaml:"catalog_repo" desc:"Git URL of the Terraform module catalog used by 'terraform catalog' (or pass --catalog-repo explicitly)."`
-	// InfraRepo is the git URL of the existing Terraform project repo
-	// used by `kitsu terraform scaffold infra` to bootstrap <infra-dir>.
-	InfraRepo string `yaml:"infra_repo" desc:"Git URL of an existing Terraform project used by 'terraform scaffold infra' to bootstrap <infra-dir> (or pass --repo explicitly)."`
+	// CatalogRepo is the GitHub "owner/repo" of the Terraform module
+	// catalog used by `kitsu terraform catalog`.
+	CatalogRepo string `yaml:"catalog_repo" desc:"GitHub \"owner/repo\" of the Terraform module catalog used by 'terraform catalog' (or pass --catalog-repo explicitly)."`
+	// InfraRepo is the GitHub "owner/repo" of the existing Terraform
+	// project repo used by `kitsu terraform scaffold infra` to bootstrap
+	// <infra-dir>.
+	InfraRepo string `yaml:"infra_repo" desc:"GitHub \"owner/repo\" of an existing Terraform project used by 'terraform scaffold infra' to bootstrap <infra-dir> (or pass --repo explicitly)."`
 }
 
 // SkillsConfig holds personal defaults for the `skills` command group.

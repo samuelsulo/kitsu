@@ -143,7 +143,7 @@ Subcommands:
 | `docs`                              | Regenerate each module's README input/output tables with terraform-docs, for every module directory under `<infra-dir>/modules/*/*`. Requires `terraform-docs` on `PATH` (or `--terraform-docs-bin`). |
 | `scaffold environment`               | Scaffold `<infra-dir>/environments/<env>/` with empty `environment.tfvars` and `backend.hcl` files (skipping either that already exists), ready to be filled in by hand. `--env` must be one of `sandbox`, `development`, `testing`, `staging`, `qa`, `preprod`, `production`. |
 | `scaffold module <name>`            | Scaffold `<infra-dir>/modules/local/<name>/` with the standard empty module files (`main.tf`, `variables.tf`, `outputs.tf`, `versions.tf`, `README.md`), skipping any that already exist. |
-| `scaffold infra --repo=<url> [--ref=<ref>] [--force]` | Replace the whole `<infra-dir>` with a fresh copy of an existing Terraform project repository (`--ref`: a branch or tag, defaults to the repo's default branch), for bootstrapping a new project from one that already exists. Refuses a non-empty `<infra-dir>` unless `--force`, which wipes it first. |
+| `scaffold infra --repo=<owner/repo> [--ref=<ref>] [--force]` | Replace the whole `<infra-dir>` with a fresh copy of an existing Terraform project repository (`--ref`: a branch or tag, defaults to the repo's default branch), for bootstrapping a new project from one that already exists. Refuses a non-empty `<infra-dir>` unless `--force`, which wipes it first. |
 | `catalog list`                      | List modules available in the module catalog. |
 | `catalog versions <module>`         | List a catalog module's available versions, newest first. |
 | `catalog vendor <module> <version>` | Copy a module from the catalog into `<infra-dir>/modules/vendor/<module>`, pinned to that version's tag, with provenance recorded in `VENDORED.md`. |
@@ -266,12 +266,13 @@ reads a config value reads this merged, effective config.
 
 ```yaml
 terraform:
-  # Git URL of the Terraform module catalog used by 'catalog' (or pass
-  # --catalog-repo explicitly on each command).
-  catalog_repo: "git@github.com:<you>/terraform-aws-catalog.git"
-  # Git URL of an existing Terraform project used by 'scaffold infra' to
-  # bootstrap <infra-dir> (or pass --repo explicitly).
-  infra_repo: "git@github.com:<you>/some-other-project-infra.git"
+  # GitHub "owner/repo" of the Terraform module catalog used by
+  # 'catalog' (or pass --catalog-repo explicitly on each command).
+  catalog_repo: "<you>/terraform-aws-catalog"
+  # GitHub "owner/repo" of an existing Terraform project used by
+  # 'scaffold infra' to bootstrap <infra-dir> (or pass --repo
+  # explicitly).
+  infra_repo: "<you>/some-other-project-infra"
 
 skills:
   # GitHub "owner/repo" of the Claude Code skills repo used by
@@ -306,7 +307,7 @@ shown in the YAML above).
 ```sh
 kitsu config keys                         # every key, with a description
 kitsu config set --global skills.repo someone/claude-skills
-kitsu config set --local terraform.catalog_repo git@github.com:acme/catalog.git  # this project only
+kitsu config set --local terraform.catalog_repo acme/catalog  # this project only
 kitsu config get terraform.catalog_repo   # effective value: local, falling back to global
 kitsu config show
 kitsu config edit --local

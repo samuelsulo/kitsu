@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/samuelsulo/kitsu/internal/config"
+	"github.com/samuelsulo/kitsu/internal/git"
 	"github.com/samuelsulo/kitsu/internal/skills"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +47,7 @@ func skillsRepoFlags(cmd *cobra.Command) (resolve func() (repo string, local boo
 		if err != nil {
 			return "", false, err
 		}
-		return "https://github.com/" + ownerRepo + ".git", false, nil
+		return git.CloneURL(ownerRepo), false, nil
 	}
 }
 

@@ -10,6 +10,12 @@ import (
 	"strings"
 )
 
+// CloneURL turns a GitHub "owner/repo" into the HTTPS URL used to clone
+// it.
+func CloneURL(ownerRepo string) string {
+	return "https://github.com/" + ownerRepo + ".git"
+}
+
 // Root returns the absolute path of the top-level directory of the git
 // repository containing dir. An empty dir means the current directory.
 func Root(dir string) (string, error) {

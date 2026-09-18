@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `terraform scaffold environment --env` now also accepts `development`,
   `testing`, `staging`, `qa` and `preprod`, in addition to `sandbox` and
   `production`.
+- `terraform.catalog_repo`/`terraform.infra_repo` (and
+  `--catalog-repo`/`--repo` on `terraform catalog`/`terraform scaffold
+  infra`) now take a GitHub `"owner/repo"`, like `skills.repo`, instead
+  of a full git URL.
 
 ### Removed
 
