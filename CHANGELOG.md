@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `terraform scaffold infra --repo=<url>`, to bootstrap a whole
+  `<infra-dir>` from an existing Terraform project repository (`--ref`
+  to pin a branch/tag, `--force` to replace a non-empty `<infra-dir>`).
+  The repo can also be set via `terraform.infra_repo` in the kitsu
+  config file.
+
+### Changed
+
+- `terraform scaffold environment` no longer writes the cross-account
+  IAM role ARN into `environment.tfvars` as `aws_role_arn`. It now only
+  writes `aws_assume_role_enabled = true` there, and moves the ARN into
+  `backend.hcl`'s `assume_role.role_arn`, alongside an `<environment>`
+  segment added to the backend `key`.
+
 ## [v1.5.1] - 2026-09-04
 
 ### Fixed
