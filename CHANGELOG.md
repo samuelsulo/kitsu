@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v1.6.0] - 2026-09-18
+
 ### Added
 
 - `terraform scaffold infra --repo=<url>`, to bootstrap a whole
