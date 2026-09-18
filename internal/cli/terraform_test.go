@@ -2,11 +2,50 @@ package cli
 
 import (
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
 )
+
+// runTerraform runs "kitsu terraform <args...>" from inside a fresh temp
+// directory (so it never touches the real project) and returns the
+// error, if any.
+func runTerraform(t *testing.T, args ...string) error {
+	t.Helper()
+	t.Chdir(t.TempDir())
+
+	cmd := newTerraformCmd()
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	cmd.SetArgs(args)
+	return cmd.Execute()
+}
+
+func TestTerraformScaffoldEnvironment(t *testing.T) {
+	err := runTerraform(t, "scaffold", "environment", "--env", "sandbox")
+	if err != nil {
+		t.Fatalf("scaffold environment: %v", err)
+	}
+
+	for _, f := range []string{"environment.tfvars", "backend.hcl"} {
+		if _, err := os.Stat(filepath.Join("infrastructure", "environments", "sandbox", f)); err != nil {
+			t.Errorf("expected %q to be created: %v", f, err)
+		}
+	}
+}
+
+func TestTerraformScaffoldEnvironment_InvalidEnv(t *testing.T) {
+	err := runTerraform(t, "scaffold", "environment", "--env", "prod")
+	if err == nil {
+		t.Fatal("scaffold environment --env prod: expected an error, got nil")
+	}
+	if !strings.Contains(err.Error(), "--env must be") {
+		t.Errorf("scaffold environment --env prod: error = %q, want it to mention --env", err)
+	}
+}
 
 func TestReadLine_DoesNotOverconsume(t *testing.T) {
 	// Two lines available upfront, as when input is piped rather than

@@ -23,65 +23,51 @@ func newScaffoldTestRunner(t *testing.T) Runner {
 func TestRunner_ScaffoldEnvironment(t *testing.T) {
 	r := newScaffoldTestRunner(t)
 
-	projectTFVars := filepath.Join(r.Env.LiveDir(), "project.auto.tfvars")
-	if err := os.WriteFile(projectTFVars, []byte(`project    = "acme-website"
-aws_region = "eu-south-1"
-`), 0o644); err != nil {
-		t.Fatalf("write %q: %v", projectTFVars, err)
-	}
-
-	if err := r.ScaffoldEnvironment("123456789012", "arn:aws:iam::%s:role/AdminRole"); err != nil {
+	if err := r.ScaffoldEnvironment(); err != nil {
 		t.Fatalf("ScaffoldEnvironment: %v", err)
 	}
 
-	environmentTFVars, err := os.ReadFile(filepath.Join(r.Env.Dir(), "environment.tfvars"))
-	if err != nil {
-		t.Fatalf("read environment.tfvars: %v", err)
-	}
-	wantEnvironmentTFVars := "environment             = \"production\"\n" +
-		"aws_account_id          = \"123456789012\"\n" +
-		"aws_assume_role_enabled = true\n"
-	if string(environmentTFVars) != wantEnvironmentTFVars {
-		t.Errorf("environment.tfvars =\n%s\nwant:\n%s", environmentTFVars, wantEnvironmentTFVars)
-	}
-
-	backendHCL, err := os.ReadFile(filepath.Join(r.Env.Dir(), "backend.hcl"))
-	if err != nil {
-		t.Fatalf("read backend.hcl: %v", err)
-	}
-	wantBackendHCL := "bucket       = \"terraform-state-123456789012-eu-south-1-an\"\n" +
-		"key          = \"acme-website/production/terraform.tfstate\"\n" +
-		"region       = \"eu-south-1\"\n" +
-		"use_lockfile = true\n" +
-		"encrypt      = true\n" +
-		"\n" +
-		"assume_role = {\n" +
-		"  role_arn = \"arn:aws:iam::123456789012:role/AdminRole\"\n" +
-		"}\n"
-	if string(backendHCL) != wantBackendHCL {
-		t.Errorf("backend.hcl =\n%s\nwant:\n%s", backendHCL, wantBackendHCL)
+	for _, f := range scaffoldEnvironmentFiles {
+		path := filepath.Join(r.Env.Dir(), f)
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read %q: %v", path, err)
+		}
+		if len(content) != 0 {
+			t.Errorf("%q = %q, want it empty", path, content)
+		}
 	}
 }
 
-func TestRunner_ScaffoldEnvironment_MissingProjectTFVars(t *testing.T) {
+func TestRunner_ScaffoldEnvironment_SkipsExistingFiles(t *testing.T) {
 	r := newScaffoldTestRunner(t)
 
-	if err := r.ScaffoldEnvironment("123456789012", "arn:aws:iam::%s:role/AdminRole"); err == nil {
-		t.Error("ScaffoldEnvironment: expected an error when project.auto.tfvars is missing, got nil")
+	if err := os.MkdirAll(r.Env.Dir(), 0o755); err != nil {
+		t.Fatalf("mkdir %q: %v", r.Env.Dir(), err)
 	}
-}
-
-func TestRunner_ScaffoldEnvironment_IncompleteProjectTFVars(t *testing.T) {
-	r := newScaffoldTestRunner(t)
-
-	// Missing aws_region.
-	projectTFVars := filepath.Join(r.Env.LiveDir(), "project.auto.tfvars")
-	if err := os.WriteFile(projectTFVars, []byte(`project = "acme-website"`+"\n"), 0o644); err != nil {
-		t.Fatalf("write %q: %v", projectTFVars, err)
+	existing := filepath.Join(r.Env.Dir(), "environment.tfvars")
+	if err := os.WriteFile(existing, []byte("environment = \"production\"\n"), 0o644); err != nil {
+		t.Fatalf("write %q: %v", existing, err)
 	}
 
-	if err := r.ScaffoldEnvironment("123456789012", "arn:aws:iam::%s:role/AdminRole"); err == nil {
-		t.Error("ScaffoldEnvironment: expected an error when aws_region is missing, got nil")
+	if err := r.ScaffoldEnvironment(); err != nil {
+		t.Fatalf("ScaffoldEnvironment: %v", err)
+	}
+
+	content, err := os.ReadFile(existing)
+	if err != nil {
+		t.Fatalf("read %q: %v", existing, err)
+	}
+	if string(content) != "environment = \"production\"\n" {
+		t.Errorf("existing environment.tfvars was overwritten: got %q", content)
+	}
+
+	out, ok := r.Stdout.(*captureWriter)
+	if !ok {
+		t.Fatal("r.Stdout is not a *captureWriter")
+	}
+	if !strings.Contains(out.String(), "already exists, skipping") {
+		t.Errorf("output = %q, want it to report environment.tfvars as skipped", out.String())
 	}
 }
 

@@ -6,85 +6,41 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
-// ScaffoldEnvironment creates <infra-dir>/environments/<env>/{environment.tfvars,backend.hcl}
-// for a new AWS account, reading 'project' and 'aws_region' from
-// live/project.auto.tfvars. roleARNTemplate is a fmt template with a
-// single %s for the AWS account id (e.g.
-// "arn:aws:iam::%s:role/MyAdminRole"), written into backend.hcl's
-// assume_role.role_arn; environment.tfvars only gets the
-// aws_assume_role_enabled flag, not the ARN itself.
-func (r Runner) ScaffoldEnvironment(accountID, roleARNTemplate string) error {
-	projectTFVars := filepath.Join(r.Env.LiveDir(), "project.auto.tfvars")
+// scaffoldEnvironmentFiles are the empty files scaffolded by
+// ScaffoldEnvironment for a new environment.
+var scaffoldEnvironmentFiles = []string{"environment.tfvars", "backend.hcl"}
 
-	project, err := readTFVarsString(projectTFVars, "project")
-	if err != nil {
-		return err
-	}
-	region, err := readTFVarsString(projectTFVars, "aws_region")
-	if err != nil {
-		return err
-	}
-	if project == "" || region == "" {
-		return fmt.Errorf("could not read 'project' and 'aws_region' from %s", projectTFVars)
-	}
-
-	if err := os.MkdirAll(r.Env.Dir(), 0o755); err != nil {
+// ScaffoldEnvironment creates <infra-dir>/environments/<env>/ with empty
+// environment.tfvars and backend.hcl files, skipping (and reporting) any
+// that already exist rather than overwriting them. kitsu doesn't assume
+// any particular cloud provider or backend convention — filling these
+// files in is left to the project.
+func (r Runner) ScaffoldEnvironment() error {
+	dir := r.Env.Dir()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 
-	roleARN := fmt.Sprintf(roleARNTemplate, accountID)
-	// aws_role_arn isn't passed to Terraform as a variable: the account
-	// to assume into is configured once, on the backend itself (see
-	// backendHCL below), and the Terraform code only needs to know
-	// whether to assume a role at all.
-	environmentTFVars := fmt.Sprintf(
-		"environment             = %q\naws_account_id          = %q\naws_assume_role_enabled = true\n",
-		r.Env.Name, accountID,
-	)
-	environmentTFVarsPath := filepath.Join(r.Env.Dir(), "environment.tfvars")
-	if err := os.WriteFile(environmentTFVarsPath, []byte(environmentTFVars), 0o644); err != nil {
-		return err
-	}
-	fmt.Fprintf(r.Stdout, "✓ %s written (environment=%s, aws_account_id=%s)\n", environmentTFVarsPath, r.Env.Name, accountID)
+	for _, f := range scaffoldEnvironmentFiles {
+		path := filepath.Join(dir, f)
 
-	backendHCL := fmt.Sprintf(
-		"bucket       = %q\nkey          = %q\nregion       = %q\nuse_lockfile = true\nencrypt      = true\n\nassume_role = {\n  role_arn = %q\n}\n",
-		StateBucketName(accountID, region),
-		project+"/"+r.Env.Name+"/terraform.tfstate",
-		region,
-		roleARN,
-	)
-	backendHCLPath := filepath.Join(r.Env.Dir(), "backend.hcl")
-	if err := os.WriteFile(backendHCLPath, []byte(backendHCL), 0o644); err != nil {
-		return err
+		if _, err := os.Stat(path); err == nil {
+			fmt.Fprintf(r.Stdout, "  ⤳ %s already exists, skipping\n", path)
+			continue
+		} else if !os.IsNotExist(err) {
+			return err
+		}
+
+		if err := os.WriteFile(path, nil, 0o644); err != nil {
+			return err
+		}
+		fmt.Fprintf(r.Stdout, "  ✓ %s created\n", path)
 	}
-	fmt.Fprintf(r.Stdout, "✓ %s written (project=%s, aws_region=%s)\n", backendHCLPath, project, region)
 
 	return nil
-}
-
-// tfVarsLinePattern matches a simple string assignment line in a
-// .tfvars file, e.g. `project = "example"`.
-var tfVarsLinePattern = regexp.MustCompile(`^\s*(\w+)\s*=\s*"([^"]*)"`)
-
-// readTFVarsString reads the value of a simple string assignment
-// (key = "value") from a .tfvars file, returning "" if key isn't found.
-func readTFVarsString(path, key string) (string, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("reading %s: %w", path, err)
-	}
-
-	for _, line := range strings.Split(string(data), "\n") {
-		if m := tfVarsLinePattern.FindStringSubmatch(line); m != nil && m[1] == key {
-			return m[2], nil
-		}
-	}
-	return "", nil
 }
 
 // scaffoldModuleFiles are the empty files scaffolded by ScaffoldModule

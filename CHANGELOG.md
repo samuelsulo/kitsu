@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `config keys`, to list every valid config key in a table alongside a
   description of what it configures.
 
+### Changed
+
+- **Breaking:** `terraform scaffold environment` is now generic: it just
+  creates `<infra-dir>/environments/<env>/` with empty
+  `environment.tfvars`/`backend.hcl` files, instead of reading
+  `live/project.auto.tfvars` and an AWS account id/IAM role template to
+  populate them. `--account-id` and `--role-arn-template` are gone.
+
 ## [v1.6.0] - 2026-09-18
 
 ### Added

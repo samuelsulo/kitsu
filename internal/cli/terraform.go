@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 
 	"github.com/samuelsulo/kitsu/internal/config"
@@ -350,9 +349,6 @@ func readLine(r io.Reader) (string, error) {
 	}
 }
 
-// accountIDPattern matches a bare 12-digit AWS account id.
-var accountIDPattern = regexp.MustCompile(`^[0-9]{12}$`)
-
 // newTerraformScaffoldCmd builds the "scaffold" subcommand group.
 func newTerraformScaffoldCmd(runnerFor runnerFactory) *cobra.Command {
 	cmd := &cobra.Command{
@@ -366,35 +362,24 @@ func newTerraformScaffoldCmd(runnerFor runnerFactory) *cobra.Command {
 }
 
 func newTerraformScaffoldEnvironmentCmd(runnerFor runnerFactory) *cobra.Command {
-	var accountID, roleARNTemplate string
-
 	cmd := &cobra.Command{
 		Use:   "environment",
-		Short: "Scaffold a new environment from an AWS account id and live/project.auto.tfvars",
-		Args:  cobra.NoArgs,
+		Short: "Scaffold a new environment's directory and empty config files",
+		Long: `environment creates <infra-dir>/environments/<env>/ with
+empty environment.tfvars and backend.hcl files (skipping either that
+already exists), ready to be filled in by hand — kitsu doesn't assume
+any particular cloud provider or backend convention.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := runnerFor(cmd)
 
 			if r.Env.Name != "sandbox" && r.Env.Name != "production" {
 				return fmt.Errorf("--env must be either \"sandbox\" or \"production\", got %q", r.Env.Name)
 			}
-			if !accountIDPattern.MatchString(accountID) {
-				return fmt.Errorf("--account-id must be a 12-digit AWS account id, got %q", accountID)
-			}
 
-			template, err := config.ResolveRoleARNTemplate(roleARNTemplate)
-			if err != nil {
-				return err
-			}
-
-			return r.ScaffoldEnvironment(accountID, template)
+			return r.ScaffoldEnvironment()
 		},
 	}
-
-	cmd.Flags().StringVar(&accountID, "account-id", "", "12-digit AWS account id (required)")
-	cmd.MarkFlagRequired("account-id")
-	cmd.Flags().StringVar(&roleARNTemplate, "role-arn-template", "",
-		"IAM role ARN template with %s for the account id (defaults to terraform.role_arn_template in the kitsu config file)")
 
 	return cmd
 }
