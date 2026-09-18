@@ -128,9 +128,9 @@ func BootstrapBackend(opts BootstrapBackendOptions) error {
 	}
 
 	fmt.Fprintf(opts.Stdout, "\n✓ Bucket ready: s3://%s\n\n", bucket)
-	fmt.Fprintln(opts.Stdout, "Values to use in the environment's backend.hcl (different key per project):")
+	fmt.Fprintln(opts.Stdout, "Values to use in the environment's backend.hcl (different key per project/environment):")
 	fmt.Fprintf(opts.Stdout, "  bucket       = %q\n", bucket)
-	fmt.Fprintln(opts.Stdout, `  key          = "<project>/terraform.tfstate"`)
+	fmt.Fprintln(opts.Stdout, `  key          = "<project>/<environment>/terraform.tfstate"`)
 	fmt.Fprintf(opts.Stdout, "  region       = %q\n", opts.Region)
 	fmt.Fprintln(opts.Stdout, "  use_lockfile = true")
 	fmt.Fprintln(opts.Stdout, "  encrypt      = true")

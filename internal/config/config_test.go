@@ -193,6 +193,26 @@ func TestResolveCatalogRepo_NotConfigured(t *testing.T) {
 	}
 }
 
+func TestResolveInfraRepo(t *testing.T) {
+	withConfigDir(t)
+	writeConfig(t, "terraform:\n  infra_repo: \"from-config\"\n")
+
+	if got, err := ResolveInfraRepo("from-flag"); err != nil || got != "from-flag" {
+		t.Errorf("ResolveInfraRepo(explicit) = %q, %v, want %q, nil", got, err, "from-flag")
+	}
+	if got, err := ResolveInfraRepo(""); err != nil || got != "from-config" {
+		t.Errorf("ResolveInfraRepo(\"\") = %q, %v, want %q, nil", got, err, "from-config")
+	}
+}
+
+func TestResolveInfraRepo_NotConfigured(t *testing.T) {
+	withConfigDir(t)
+
+	if _, err := ResolveInfraRepo(""); err == nil {
+		t.Error("ResolveInfraRepo(\"\") with no config: expected an error, got nil")
+	}
+}
+
 func TestResolveRoleARNTemplate_NotConfigured(t *testing.T) {
 	withConfigDir(t)
 
@@ -245,7 +265,7 @@ func TestSave(t *testing.T) {
 
 func TestKeys(t *testing.T) {
 	keys := Keys()
-	want := []string{"skills.repo", "terraform.catalog_repo", "terraform.role_arn_template"}
+	want := []string{"skills.repo", "terraform.catalog_repo", "terraform.infra_repo", "terraform.role_arn_template"}
 	if len(keys) != len(want) {
 		t.Fatalf("Keys() = %v, want %v", keys, want)
 	}

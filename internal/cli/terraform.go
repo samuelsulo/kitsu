@@ -360,7 +360,7 @@ func newTerraformScaffoldCmd(runnerFor runnerFactory) *cobra.Command {
 		Short: "Scaffold a new environment or module",
 	}
 
-	cmd.AddCommand(newTerraformScaffoldEnvironmentCmd(runnerFor), newTerraformScaffoldModuleCmd(runnerFor))
+	cmd.AddCommand(newTerraformScaffoldEnvironmentCmd(runnerFor), newTerraformScaffoldModuleCmd(runnerFor), newTerraformScaffoldInfraCmd(runnerFor))
 
 	return cmd
 }
@@ -395,6 +395,43 @@ func newTerraformScaffoldEnvironmentCmd(runnerFor runnerFactory) *cobra.Command 
 	cmd.MarkFlagRequired("account-id")
 	cmd.Flags().StringVar(&roleARNTemplate, "role-arn-template", "",
 		"IAM role ARN template with %s for the account id (defaults to terraform.role_arn_template in the kitsu config file)")
+
+	return cmd
+}
+
+func newTerraformScaffoldInfraCmd(runnerFor runnerFactory) *cobra.Command {
+	var repo, ref string
+	var force bool
+
+	cmd := &cobra.Command{
+		Use:   "infra",
+		Short: "Replace <infra-dir> with a fresh copy of an existing Terraform project repository",
+		Long: `infra clones repo (at --ref, a branch or tag, or the repository's
+default branch if --ref is omitted) and replaces <infra-dir> with its
+contents, for bootstrapping a new project from an existing Terraform
+codebase rather than starting from scratch.
+
+Refuses to touch <infra-dir> if it already exists and is not empty —
+pass --force to wipe and replace it anyway. --force fully replaces
+<infra-dir>, including anything a previous 'scaffold environment' or
+'catalog vendor' run had already put there; re-run those afterwards if
+needed.`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			r := runnerFor(cmd)
+
+			resolvedRepo, err := config.ResolveInfraRepo(repo)
+			if err != nil {
+				return err
+			}
+
+			return r.ScaffoldInfra(resolvedRepo, ref, force)
+		},
+	}
+
+	cmd.Flags().StringVar(&repo, "repo", "", "Git URL of the existing Terraform project to import (defaults to terraform.infra_repo in the kitsu config file)")
+	cmd.Flags().StringVar(&ref, "ref", "", "Branch or tag to check out (defaults to the repository's default branch)")
+	cmd.Flags().BoolVar(&force, "force", false, "Replace <infra-dir> even if it already exists and is not empty")
 
 	return cmd
 }

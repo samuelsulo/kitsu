@@ -38,6 +38,9 @@ type TerraformConfig struct {
 	// CatalogRepo is the git URL of the Terraform module catalog used by
 	// `kitsu terraform catalog`.
 	CatalogRepo string `yaml:"catalog_repo"`
+	// InfraRepo is the git URL of the existing Terraform project repo
+	// used by `kitsu terraform scaffold infra` to bootstrap <infra-dir>.
+	InfraRepo string `yaml:"infra_repo"`
 	// RoleARNTemplate builds the cross-account IAM role ARN written by
 	// `kitsu terraform scaffold environment`, with %s standing in for the
 	// AWS account id (e.g. "arn:aws:iam::%s:role/MyAdminRole").
@@ -197,6 +200,14 @@ func Unset(cfg *Config, key string) error {
 func ResolveCatalogRepo(explicit string) (string, error) {
 	return resolve(explicit, func(c Config) string { return c.Terraform.CatalogRepo },
 		"--catalog-repo", "terraform.catalog_repo")
+}
+
+// ResolveInfraRepo returns explicit if non-empty, otherwise the merged
+// config's terraform.infra_repo (see LoadMerged), erroring with setup
+// guidance if neither is set.
+func ResolveInfraRepo(explicit string) (string, error) {
+	return resolve(explicit, func(c Config) string { return c.Terraform.InfraRepo },
+		"--repo", "terraform.infra_repo")
 }
 
 // ResolveRoleARNTemplate returns explicit if non-empty, otherwise the

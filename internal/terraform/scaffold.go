@@ -1,8 +1,10 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -12,7 +14,9 @@ import (
 // for a new AWS account, reading 'project' and 'aws_region' from
 // live/project.auto.tfvars. roleARNTemplate is a fmt template with a
 // single %s for the AWS account id (e.g.
-// "arn:aws:iam::%s:role/MyAdminRole").
+// "arn:aws:iam::%s:role/MyAdminRole"), written into backend.hcl's
+// assume_role.role_arn; environment.tfvars only gets the
+// aws_assume_role_enabled flag, not the ARN itself.
 func (r Runner) ScaffoldEnvironment(accountID, roleARNTemplate string) error {
 	projectTFVars := filepath.Join(r.Env.LiveDir(), "project.auto.tfvars")
 
@@ -33,9 +37,13 @@ func (r Runner) ScaffoldEnvironment(accountID, roleARNTemplate string) error {
 	}
 
 	roleARN := fmt.Sprintf(roleARNTemplate, accountID)
+	// aws_role_arn isn't passed to Terraform as a variable: the account
+	// to assume into is configured once, on the backend itself (see
+	// backendHCL below), and the Terraform code only needs to know
+	// whether to assume a role at all.
 	environmentTFVars := fmt.Sprintf(
-		"environment    = %q\naws_account_id = %q\naws_role_arn   = %q\n",
-		r.Env.Name, accountID, roleARN,
+		"environment             = %q\naws_account_id          = %q\naws_assume_role_enabled = true\n",
+		r.Env.Name, accountID,
 	)
 	environmentTFVarsPath := filepath.Join(r.Env.Dir(), "environment.tfvars")
 	if err := os.WriteFile(environmentTFVarsPath, []byte(environmentTFVars), 0o644); err != nil {
@@ -44,10 +52,11 @@ func (r Runner) ScaffoldEnvironment(accountID, roleARNTemplate string) error {
 	fmt.Fprintf(r.Stdout, "✓ %s written (environment=%s, aws_account_id=%s)\n", environmentTFVarsPath, r.Env.Name, accountID)
 
 	backendHCL := fmt.Sprintf(
-		"bucket = %q\nkey = %q\nregion = %q\nuse_lockfile = true\nencrypt = true\n",
+		"bucket       = %q\nkey          = %q\nregion       = %q\nuse_lockfile = true\nencrypt      = true\n\nassume_role = {\n  role_arn = %q\n}\n",
 		StateBucketName(accountID, region),
-		project+"/terraform.tfstate",
+		project+"/"+r.Env.Name+"/terraform.tfstate",
 		region,
+		roleARN,
 	)
 	backendHCLPath := filepath.Join(r.Env.Dir(), "backend.hcl")
 	if err := os.WriteFile(backendHCLPath, []byte(backendHCL), 0o644); err != nil {
@@ -107,5 +116,60 @@ func (r Runner) ScaffoldModule(name string) error {
 		fmt.Fprintf(r.Stdout, "  ✓ %s created\n", path)
 	}
 
+	return nil
+}
+
+// ScaffoldInfra replaces <infra-dir> with a fresh copy of repo (at ref, a
+// branch or tag, or the repository's default branch if ref is empty),
+// for bootstrapping a whole project's Terraform tree from an existing
+// one. It refuses to touch <infra-dir> if it already exists and isn't
+// empty, unless force is true — a plain overwrite would otherwise
+// silently discard whatever a previous 'scaffold environment' or
+// 'catalog vendor' run had already put there.
+func (r Runner) ScaffoldInfra(repo, ref string, force bool) error {
+	dir := r.Env.infraDir()
+
+	entries, err := os.ReadDir(dir)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if len(entries) > 0 && !force {
+		return fmt.Errorf("%s already exists and is not empty; pass --force to replace it", dir)
+	}
+
+	tmpDir, err := os.MkdirTemp("", "kitsu-infra-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	cloneArgs := []string{"clone", "--quiet", "--depth", "1"}
+	if ref != "" {
+		cloneArgs = append(cloneArgs, "--branch", ref)
+	}
+	cloneArgs = append(cloneArgs, repo, tmpDir)
+	if out, err := exec.Command("git", cloneArgs...).CombinedOutput(); err != nil {
+		return fmt.Errorf("cloning %s: %w (%s)", repo, err, strings.TrimSpace(string(out)))
+	}
+
+	commitCmd := exec.Command("git", "-C", tmpDir, "rev-parse", "HEAD")
+	var commitOut bytes.Buffer
+	commitCmd.Stdout = &commitOut
+	if err := commitCmd.Run(); err != nil {
+		return fmt.Errorf("resolving commit for %s: %w", repo, err)
+	}
+	commit := strings.TrimSpace(commitOut.String())
+
+	if err := os.RemoveAll(dir); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(filepath.Join(tmpDir, ".git")); err != nil {
+		return err
+	}
+	if err := os.CopyFS(dir, os.DirFS(tmpDir)); err != nil {
+		return fmt.Errorf("copying %s: %w", tmpDir, err)
+	}
+
+	fmt.Fprintf(r.Stdout, "✓ %s replaced from %s (commit %s)\n", dir, repo, commit)
 	return nil
 }
