@@ -276,6 +276,27 @@ func TestKeys(t *testing.T) {
 	}
 }
 
+func TestDescribe(t *testing.T) {
+	descs := Describe()
+
+	keys := make([]string, len(descs))
+	for i, d := range descs {
+		keys[i] = d.Key
+		if d.Description == "" {
+			t.Errorf("Describe(): key %q has an empty description", d.Key)
+		}
+	}
+	want := Keys()
+	if len(keys) != len(want) {
+		t.Fatalf("Describe() keys = %v, want %v", keys, want)
+	}
+	for i, k := range want {
+		if keys[i] != k {
+			t.Errorf("Describe()[%d].Key = %q, want %q", i, keys[i], k)
+		}
+	}
+}
+
 func TestGetSetUnset(t *testing.T) {
 	var cfg Config
 

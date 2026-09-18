@@ -298,6 +298,7 @@ shown in the YAML above).
 
 | Command                     | Does |
 |------------------------------|------|
+| `keys`                        | Lists every valid key, one per row, with a description of what it configures. |
 | `get <key>`                  | Prints `<key>`'s effective value (local, falling back to global) — or, with `--global`/`--local`, that one file's raw value. |
 | `set <key> <value> (--global\|--local)` | Writes `<value>` for `<key>` into one file. `--global`/`--local` is required — the wrong one means either leaking a personal value into a shared repository, or a project setting silently only applying to you. |
 | `unset <key> (--global\|--local)` | Clears `<key>` in one file (same scope requirement as `set`). |
@@ -306,6 +307,7 @@ shown in the YAML above).
 | `edit (--global\|--local)`    | Opens one file in `$EDITOR`, creating it first if it doesn't exist. |
 
 ```sh
+kitsu config keys                         # every key, with a description
 kitsu config set --global skills.repo someone/claude-skills
 kitsu config set --local terraform.catalog_repo git@github.com:acme/catalog.git  # this project only
 kitsu config get terraform.catalog_repo   # effective value: local, falling back to global

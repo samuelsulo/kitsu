@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"text/tabwriter"
 
 	"github.com/samuelsulo/kitsu/internal/config"
 	"github.com/spf13/cobra"
@@ -97,6 +98,7 @@ files directly.`,
 	}
 
 	cmd.AddCommand(
+		newConfigKeysCmd(),
 		newConfigGetCmd(),
 		newConfigSetCmd(),
 		newConfigUnsetCmd(),
@@ -108,12 +110,33 @@ files directly.`,
 	return cmd
 }
 
+func newConfigKeysCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "keys",
+		Short: "List every valid config key with its description",
+		Long: `keys prints every key 'get'/'set'/'unset' accept, one per
+row, with a description of what it configures.`,
+		Args: cobra.NoArgs,
+	}
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
+		fmt.Fprintln(w, "KEY\tDESCRIPTION")
+		for _, d := range config.Describe() {
+			fmt.Fprintf(w, "%s\t%s\n", d.Key, d.Description)
+		}
+		return w.Flush()
+	}
+
+	return cmd
+}
+
 func newConfigGetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get <key>",
 		Short: "Print one config key's value",
 		Long: `get prints the value of <key>, a dot-separated path such
-as "terraform.catalog_repo" (see 'kitsu config show' for the full
+as "terraform.catalog_repo" (see 'kitsu config keys' for the full
 list of keys).
 
 Without --global/--local, it prints the effective value: the local
@@ -149,7 +172,7 @@ func newConfigSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set <key> <value>",
 		Short: "Set one config key's value",
-		Long: `set writes <value> for <key> (see 'kitsu config show'
+		Long: `set writes <value> for <key> (see 'kitsu config keys'
 for the full list of keys) into one config file. --global or --local
 is required: writing the wrong one by mistake means either leaking a
 personal value into a shared repository, or a value meant for the

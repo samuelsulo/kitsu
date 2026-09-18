@@ -26,7 +26,8 @@ import (
 // which Get/Set/Unset/Keys rely on to address it generically by its
 // dot-separated yaml tag path (e.g. "terraform.catalog_repo"), rather
 // than through a hand-maintained key registry that could drift from the
-// struct.
+// struct. Its `desc` tag is the field's human-readable description,
+// read the same way by Describe (used by `kitsu config keys`).
 type Config struct {
 	Terraform TerraformConfig `yaml:"terraform"`
 	Skills    SkillsConfig    `yaml:"skills"`
@@ -37,21 +38,21 @@ type Config struct {
 type TerraformConfig struct {
 	// CatalogRepo is the git URL of the Terraform module catalog used by
 	// `kitsu terraform catalog`.
-	CatalogRepo string `yaml:"catalog_repo"`
+	CatalogRepo string `yaml:"catalog_repo" desc:"Git URL of the Terraform module catalog used by 'terraform catalog' (or pass --catalog-repo explicitly)."`
 	// InfraRepo is the git URL of the existing Terraform project repo
 	// used by `kitsu terraform scaffold infra` to bootstrap <infra-dir>.
-	InfraRepo string `yaml:"infra_repo"`
+	InfraRepo string `yaml:"infra_repo" desc:"Git URL of an existing Terraform project used by 'terraform scaffold infra' to bootstrap <infra-dir> (or pass --repo explicitly)."`
 	// RoleARNTemplate builds the cross-account IAM role ARN written by
 	// `kitsu terraform scaffold environment`, with %s standing in for the
 	// AWS account id (e.g. "arn:aws:iam::%s:role/MyAdminRole").
-	RoleARNTemplate string `yaml:"role_arn_template"`
+	RoleARNTemplate string `yaml:"role_arn_template" desc:"IAM role ARN template used by 'terraform scaffold environment', with %s standing in for the AWS account id (or pass --role-arn-template)."`
 }
 
 // SkillsConfig holds personal defaults for the `skills` command group.
 type SkillsConfig struct {
 	// Repo is the GitHub "owner/repo" of the Claude Code skills
 	// repository used by `kitsu skills install`/`skills package`.
-	Repo string `yaml:"repo"`
+	Repo string `yaml:"repo" desc:"GitHub \"owner/repo\" of the Claude Code skills repo used by 'skills install'/'skills package' (or pass --repo explicitly). Defaults to \"samuelsulo/claude-skills\" if omitted entirely."`
 }
 
 // DefaultSkillsRepo is used by ResolveSkillsRepo when neither an
@@ -167,6 +168,26 @@ func Keys() []string {
 	return keys
 }
 
+// KeyDescription pairs a config key with the human-readable description
+// from its field's `desc` tag, for commands (e.g. `kitsu config keys`)
+// that list every possible key.
+type KeyDescription struct {
+	Key         string
+	Description string
+}
+
+// Describe returns every valid config key (see Keys) alongside its
+// description, sorted by key.
+func Describe() []KeyDescription {
+	paths := fieldPaths()
+	descs := make([]KeyDescription, len(paths))
+	for i, p := range paths {
+		descs[i] = KeyDescription{Key: p.key, Description: p.desc}
+	}
+	sort.Slice(descs, func(i, j int) bool { return descs[i].Key < descs[j].Key })
+	return descs
+}
+
 // Get returns key's value in cfg (e.g. "terraform.catalog_repo"),
 // erroring if key isn't one of Keys().
 func Get(cfg Config, key string) (string, error) {
@@ -259,11 +280,12 @@ func resolve(explicit string, get func(Config) string, flag, key string) (string
 
 // fieldPath addresses one leaf string field of Config by the
 // dot-separated path built from its yaml tags (e.g.
-// "terraform.catalog_repo"), and the reflect.Value.FieldByIndex path
-// needed to reach it.
+// "terraform.catalog_repo"), the reflect.Value.FieldByIndex path needed
+// to reach it, and its `desc` tag.
 type fieldPath struct {
 	key   string
 	index []int
+	desc  string
 }
 
 // fieldPaths walks Config's fields, recursing into nested structs, and
@@ -291,7 +313,7 @@ func fieldPaths() []fieldPath {
 				walk(f.Type, key, idx)
 				continue
 			}
-			paths = append(paths, fieldPath{key: key, index: idx})
+			paths = append(paths, fieldPath{key: key, index: idx, desc: f.Tag.Get("desc")})
 		}
 	}
 	walk(reflect.TypeOf(Config{}), "", nil)

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `config keys`, to list every valid config key in a table alongside a
+  description of what it configures.
+
 ## [v1.6.0] - 2026-09-18
 
 ### Added
