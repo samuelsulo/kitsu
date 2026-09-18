@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `live/project.auto.tfvars` and an AWS account id/IAM role template to
   populate them. `--account-id` and `--role-arn-template` are gone.
 
+### Removed
+
+- `terraform.role_arn_template` config key, now unused since
+  `terraform scaffold environment` no longer writes an IAM role ARN
+  anywhere.
+
 ## [v1.6.0] - 2026-09-18
 
 ### Added

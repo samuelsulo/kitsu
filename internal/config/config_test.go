@@ -63,7 +63,7 @@ func TestLoad_ValidFile(t *testing.T) {
 	writeConfig(t, `
 terraform:
   catalog_repo: "git@example.com:org/catalog.git"
-  role_arn_template: "arn:aws:iam::%s:role/AdminRole"
+  infra_repo: "git@example.com:org/infra.git"
 `)
 
 	cfg, err := Load()
@@ -73,8 +73,8 @@ terraform:
 	if got, want := cfg.Terraform.CatalogRepo, "git@example.com:org/catalog.git"; got != want {
 		t.Errorf("CatalogRepo = %q, want %q", got, want)
 	}
-	if got, want := cfg.Terraform.RoleARNTemplate, "arn:aws:iam::%s:role/AdminRole"; got != want {
-		t.Errorf("RoleARNTemplate = %q, want %q", got, want)
+	if got, want := cfg.Terraform.InfraRepo, "git@example.com:org/infra.git"; got != want {
+		t.Errorf("InfraRepo = %q, want %q", got, want)
 	}
 }
 
@@ -153,7 +153,7 @@ func TestLoadMerged_LocalOverridesGlobal(t *testing.T) {
 	writeConfig(t, `
 terraform:
   catalog_repo: "global-catalog"
-  role_arn_template: "global-role"
+  infra_repo: "global-infra"
 `)
 	withProjectRepo(t)
 	writeProjectConfig(t, `
@@ -168,8 +168,8 @@ terraform:
 	if got, want := cfg.Terraform.CatalogRepo, "local-catalog"; got != want {
 		t.Errorf("CatalogRepo = %q, want %q (local should override global)", got, want)
 	}
-	if got, want := cfg.Terraform.RoleARNTemplate, "global-role"; got != want {
-		t.Errorf("RoleARNTemplate = %q, want %q (should fall back to global)", got, want)
+	if got, want := cfg.Terraform.InfraRepo, "global-infra"; got != want {
+		t.Errorf("InfraRepo = %q, want %q (should fall back to global)", got, want)
 	}
 }
 
@@ -210,14 +210,6 @@ func TestResolveInfraRepo_NotConfigured(t *testing.T) {
 
 	if _, err := ResolveInfraRepo(""); err == nil {
 		t.Error("ResolveInfraRepo(\"\") with no config: expected an error, got nil")
-	}
-}
-
-func TestResolveRoleARNTemplate_NotConfigured(t *testing.T) {
-	withConfigDir(t)
-
-	if _, err := ResolveRoleARNTemplate(""); err == nil {
-		t.Error("ResolveRoleARNTemplate(\"\") with no config: expected an error, got nil")
 	}
 }
 
@@ -265,7 +257,7 @@ func TestSave(t *testing.T) {
 
 func TestKeys(t *testing.T) {
 	keys := Keys()
-	want := []string{"skills.repo", "terraform.catalog_repo", "terraform.infra_repo", "terraform.role_arn_template"}
+	want := []string{"skills.repo", "terraform.catalog_repo", "terraform.infra_repo"}
 	if len(keys) != len(want) {
 		t.Fatalf("Keys() = %v, want %v", keys, want)
 	}

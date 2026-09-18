@@ -272,9 +272,6 @@ terraform:
   # Git URL of an existing Terraform project used by 'scaffold infra' to
   # bootstrap <infra-dir> (or pass --repo explicitly).
   infra_repo: "git@github.com:<you>/some-other-project-infra.git"
-  # IAM role ARN template used by 'scaffold environment', with %s
-  # standing in for the AWS account id (or pass --role-arn-template).
-  role_arn_template: "arn:aws:iam::%s:role/<YourAdminRole>"
 
 skills:
   # GitHub "owner/repo" of the Claude Code skills repo used by

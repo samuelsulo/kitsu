@@ -42,10 +42,6 @@ type TerraformConfig struct {
 	// InfraRepo is the git URL of the existing Terraform project repo
 	// used by `kitsu terraform scaffold infra` to bootstrap <infra-dir>.
 	InfraRepo string `yaml:"infra_repo" desc:"Git URL of an existing Terraform project used by 'terraform scaffold infra' to bootstrap <infra-dir> (or pass --repo explicitly)."`
-	// RoleARNTemplate builds the cross-account IAM role ARN written by
-	// `kitsu terraform scaffold environment`, with %s standing in for the
-	// AWS account id (e.g. "arn:aws:iam::%s:role/MyAdminRole").
-	RoleARNTemplate string `yaml:"role_arn_template" desc:"IAM role ARN template used by 'terraform scaffold environment', with %s standing in for the AWS account id (or pass --role-arn-template)."`
 }
 
 // SkillsConfig holds personal defaults for the `skills` command group.
@@ -229,14 +225,6 @@ func ResolveCatalogRepo(explicit string) (string, error) {
 func ResolveInfraRepo(explicit string) (string, error) {
 	return resolve(explicit, func(c Config) string { return c.Terraform.InfraRepo },
 		"--repo", "terraform.infra_repo")
-}
-
-// ResolveRoleARNTemplate returns explicit if non-empty, otherwise the
-// merged config's terraform.role_arn_template (see LoadMerged), erroring
-// with setup guidance if neither is set.
-func ResolveRoleARNTemplate(explicit string) (string, error) {
-	return resolve(explicit, func(c Config) string { return c.Terraform.RoleARNTemplate },
-		"--role-arn-template", "terraform.role_arn_template")
 }
 
 // ResolveSkillsRepo returns explicit if non-empty, otherwise the merged

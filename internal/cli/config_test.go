@@ -103,7 +103,7 @@ func TestConfigKeys(t *testing.T) {
 	withConfigDir(t)
 
 	got := runConfig(t, "keys")
-	for _, want := range []string{"KEY", "DESCRIPTION", "skills.repo", "terraform.catalog_repo", "terraform.infra_repo", "terraform.role_arn_template"} {
+	for _, want := range []string{"KEY", "DESCRIPTION", "skills.repo", "terraform.catalog_repo", "terraform.infra_repo"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("keys output = %q, want it to contain %q", got, want)
 		}
